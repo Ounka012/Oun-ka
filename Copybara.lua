@@ -1,6 +1,7 @@
--- =============================================
--- Copybara Hub - In-Game GUI (Full Control)
--- =============================================
+-- =====================================================
+-- COPYBARA HUB - GRID LAYOUT (2 Columns)
+-- GUI រៀបជាផ្នែកៗ មិនមែនជាជួរវែង
+-- =====================================================
 
 -- Services
 local Players = game:GetService("Players")
@@ -9,7 +10,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
--- ========== SETTINGS (Default) ==========
+-- ========== SETTINGS ==========
 local Settings = {
     aimbot = false,
     aimbotFOV = 120,
@@ -27,32 +28,32 @@ local Settings = {
     autoKillNPC = false,
 }
 
--- ========== CREATE GUI ==========
+-- ========== CREATE MAIN GUI ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHub"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = game:GetService("CoreGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 520, 0, 480)
-mainFrame.Position = UDim2.new(0.5, -260, 0.5, -240)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 35)
+mainFrame.Size = UDim2.new(0, 700, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 32)
 mainFrame.BackgroundTransparency = 0.05
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(70, 100, 200)
-stroke.Thickness = 1.5
-stroke.Parent = mainFrame
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(70, 100, 200)
+mainStroke.Thickness = 1.5
+mainStroke.Parent = mainFrame
 
 -- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(30, 32, 48)
+titleBar.BackgroundColor3 = Color3.fromRGB(28, 30, 45)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 local titleCorner = Instance.new("UICorner")
@@ -62,7 +63,7 @@ titleCorner.Parent = titleBar
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
 titleLabel.Position = UDim2.new(0, 15, 0, 0)
-titleLabel.Text = "🦫 Copybara Hub - Control Panel"
+titleLabel.Text = "🦫 Copybara Hub - Grid Panel"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
@@ -107,61 +108,90 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Scroll Frame
+-- ========== CONTENT CONTAINER (Scrollable) ==========
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -20, 1, -55)
 scrollFrame.Position = UDim2.new(0, 10, 0, 50)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarThickness = 6
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 120, 200)
 scrollFrame.Parent = mainFrame
 
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 8)
-listLayout.Parent = scrollFrame
+-- Main layout inside scroll: a frame with GridLayout for two columns
+local contentGrid = Instance.new("Frame")
+contentGrid.Size = UDim2.new(1, 0, 0, 0)
+contentGrid.BackgroundTransparency = 1
+contentGrid.Parent = scrollFrame
 
-local padding = Instance.new("UIPadding")
-padding.PaddingTop = UDim.new(0, 5)
-padding.PaddingBottom = UDim.new(0, 5)
-padding.Parent = scrollFrame
+local gridLayout = Instance.new("UIGridLayout")
+gridLayout.Parent = contentGrid
+gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gridLayout.FillDirection = Enum.FillDirection.Horizontal
+gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+gridLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+gridLayout.CellPadding = UDim.new(0, 15)
+gridLayout.CellSize = UDim2.new(0, 320, 0, 0) -- each column width 320, height auto
 
-listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
-end)
-
--- ========== HELPERS ==========
-local function CreateSection(parent, name)
-    local section = Instance.new("TextLabel")
-    section.Text = "── " .. name .. " ──"
-    section.Size = UDim2.new(1, -10, 0, 25)
-    section.BackgroundTransparency = 1
-    section.TextColor3 = Color3.fromRGB(100, 180, 255)
-    section.Font = Enum.Font.GothamBold
-    section.TextSize = 14
-    section.TextXAlignment = Enum.TextXAlignment.Center
-    section.Parent = parent
+-- For each section, create a panel that will hold its items
+local function CreateSectionPanel(title, layoutOrder)
+    local panel = Instance.new("Frame")
+    panel.Size = UDim2.new(0, 320, 0, 0)
+    panel.BackgroundColor3 = Color3.fromRGB(25, 27, 42)
+    panel.BackgroundTransparency = 0.1
+    panel.BorderSizePixel = 0
+    panel.LayoutOrder = layoutOrder
+    panel.Parent = contentGrid
+    local panelCorner = Instance.new("UICorner")
+    panelCorner.CornerRadius = UDim.new(0, 8)
+    panelCorner.Parent = panel
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Text = "── " .. title .. " ──"
+    titleLabel.Size = UDim2.new(1, -20, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    titleLabel.Parent = panel
+    
+    local itemList = Instance.new("UIListLayout")
+    itemList.Parent = panel
+    itemList.Padding = UDim.new(0, 8)
+    itemList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 40)
+    padding.PaddingBottom = UDim.new(0, 10)
+    padding.PaddingLeft = UDim.new(0, 8)
+    padding.PaddingRight = UDim.new(0, 8)
+    padding.Parent = panel
+    
+    return panel, itemList
 end
 
-local function CreateToggle(parent, label, flag)
+-- Helper: Add Toggle to a panel
+local function AddToggle(panel, labelText, flag)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 32, 48)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 37, 55)
     frame.BorderSizePixel = 0
-    frame.Parent = parent
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 8)
-    frameCorner.Parent = frame
+    frame.Parent = panel
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 6)
+    fCorner.Parent = frame
     
     local text = Instance.new("TextLabel")
-    text.Text = label
+    text.Text = labelText
     text.Size = UDim2.new(1, -70, 1, 0)
     text.Position = UDim2.new(0, 12, 0, 0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.fromRGB(220, 220, 255)
     text.TextXAlignment = Enum.TextXAlignment.Left
     text.Font = Enum.Font.Gotham
-    text.TextSize = 14
+    text.TextSize = 13
     text.Parent = frame
     
     local switch = Instance.new("Frame")
@@ -170,9 +200,9 @@ local function CreateToggle(parent, label, flag)
     switch.BackgroundColor3 = Settings[flag] and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(80, 80, 100)
     switch.BorderSizePixel = 0
     switch.Parent = frame
-    local switchCorner = Instance.new("UICorner")
-    switchCorner.CornerRadius = UDim.new(1, 0)
-    switchCorner.Parent = switch
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(1, 0)
+    sCorner.Parent = switch
     
     local knob = Instance.new("Frame")
     knob.Size = UDim2.new(0, 19, 0, 19)
@@ -180,9 +210,9 @@ local function CreateToggle(parent, label, flag)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel = 0
     knob.Parent = switch
-    local knobCorner = Instance.new("UICorner")
-    knobCorner.CornerRadius = UDim.new(1, 0)
-    knobCorner.Parent = knob
+    local kCorner = Instance.new("UICorner")
+    kCorner.CornerRadius = UDim.new(1, 0)
+    kCorner.Parent = knob
     
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 1, 0)
@@ -198,25 +228,26 @@ local function CreateToggle(parent, label, flag)
     return frame
 end
 
-local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
+-- Helper: Add Slider
+local function AddSlider(panel, labelText, flag, minVal, maxVal, suffix)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 55)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 32, 48)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 37, 55)
     frame.BorderSizePixel = 0
-    frame.Parent = parent
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 8)
-    frameCorner.Parent = frame
+    frame.Parent = panel
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 6)
+    fCorner.Parent = frame
     
     local text = Instance.new("TextLabel")
-    text.Text = label
+    text.Text = labelText
     text.Size = UDim2.new(1, -20, 0, 20)
     text.Position = UDim2.new(0, 12, 0, 5)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.fromRGB(220, 220, 255)
     text.TextXAlignment = Enum.TextXAlignment.Left
     text.Font = Enum.Font.Gotham
-    text.TextSize = 13
+    text.TextSize = 12
     text.Parent = frame
     
     local sliderBar = Instance.new("Frame")
@@ -225,12 +256,12 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     sliderBar.BackgroundColor3 = Color3.fromRGB(60, 65, 85)
     sliderBar.BorderSizePixel = 0
     sliderBar.Parent = frame
-    local sliderCorner = Instance.new("UICorner")
-    sliderCorner.CornerRadius = UDim.new(1, 0)
-    sliderCorner.Parent = sliderBar
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(1, 0)
+    sCorner.Parent = sliderBar
     
-    local fill = Instance.new("Frame")
     local percent = (Settings[flag] - minVal) / (maxVal - minVal)
+    local fill = Instance.new("Frame")
     fill.Size = UDim2.new(percent, 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
     fill.BorderSizePixel = 0
@@ -245,9 +276,9 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.BorderSizePixel = 0
     knob.Parent = sliderBar
-    local knobCorner = Instance.new("UICorner")
-    knobCorner.CornerRadius = UDim.new(1, 0)
-    knobCorner.Parent = knob
+    local kCorner = Instance.new("UICorner")
+    kCorner.CornerRadius = UDim.new(1, 0)
+    kCorner.Parent = knob
     
     local valueLabel = Instance.new("TextLabel")
     valueLabel.Text = tostring(Settings[flag]) .. (suffix or "")
@@ -288,25 +319,26 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     return frame
 end
 
-local function CreateColorPicker(parent, label, flag)
+-- Helper: Color Picker
+local function AddColorPicker(panel, labelText, flag)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 32, 48)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 37, 55)
     frame.BorderSizePixel = 0
-    frame.Parent = parent
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 8)
-    frameCorner.Parent = frame
+    frame.Parent = panel
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 6)
+    fCorner.Parent = frame
     
     local text = Instance.new("TextLabel")
-    text.Text = label
+    text.Text = labelText
     text.Size = UDim2.new(1, -70, 1, 0)
     text.Position = UDim2.new(0, 12, 0, 0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.fromRGB(220, 220, 255)
     text.TextXAlignment = Enum.TextXAlignment.Left
     text.Font = Enum.Font.Gotham
-    text.TextSize = 14
+    text.TextSize = 13
     text.Parent = frame
     
     local colorBtn = Instance.new("TextButton")
@@ -337,42 +369,67 @@ local function CreateColorPicker(parent, label, flag)
     return frame
 end
 
-local function CreateJSONArea(parent)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 120)
-    frame.BackgroundColor3 = Color3.fromRGB(15, 17, 25)
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 8)
-    frameCorner.Parent = frame
+-- Helper: JSON Area (spans full width)
+local function AddJSONArea()
+    local panel = Instance.new("Frame")
+    panel.Size = UDim2.new(1, 0, 0, 120)
+    panel.BackgroundColor3 = Color3.fromRGB(15, 17, 28)
+    panel.BorderSizePixel = 0
+    panel.LayoutOrder = 3
+    panel.Parent = contentGrid
+    local pCorner = Instance.new("UICorner")
+    pCorner.CornerRadius = UDim.new(0, 8)
+    pCorner.Parent = panel
     
     local title = Instance.new("TextLabel")
     title.Text = "📋 JSON Configuration (Copy for backup)"
-    title.Size = UDim2.new(1, -10, 0, 25)
-    title.Position = UDim2.new(0, 8, 0, 5)
+    title.Size = UDim2.new(1, -20, 0, 25)
+    title.Position = UDim2.new(0, 12, 0, 5)
     title.BackgroundTransparency = 1
     title.TextColor3 = Color3.fromRGB(150, 170, 220)
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Font = Enum.Font.Gotham
     title.TextSize = 12
-    title.Parent = frame
+    title.Parent = panel
     
     local jsonBox = Instance.new("TextBox")
-    jsonBox.Size = UDim2.new(1, -20, 0, 70)
-    jsonBox.Position = UDim2.new(0, 10, 0, 35)
-    jsonBox.BackgroundColor3 = Color3.fromRGB(10, 12, 20)
+    jsonBox.Size = UDim2.new(1, -24, 0, 65)
+    jsonBox.Position = UDim2.new(0, 12, 0, 35)
+    jsonBox.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
     jsonBox.TextColor3 = Color3.fromRGB(200, 220, 255)
     jsonBox.Font = Enum.Font.Code
     jsonBox.TextSize = 11
     jsonBox.TextWrapped = true
     jsonBox.ClearTextOnFocus = false
-    jsonBox.Parent = frame
-    local jsonCorner = Instance.new("UICorner")
-    jsonCorner.CornerRadius = UDim.new(0, 6)
-    jsonCorner.Parent = jsonBox
+    jsonBox.Parent = panel
+    local jCorner = Instance.new("UICorner")
+    jCorner.CornerRadius = UDim.new(0, 6)
+    jCorner.Parent = jsonBox
     
-    local updateJSON = function()
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Size = UDim2.new(0, 80, 0, 25)
+    copyBtn.Position = UDim2.new(1, -95, 0, 80)
+    copyBtn.Text = "📋 Copy"
+    copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
+    copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    copyBtn.Font = Enum.Font.GothamBold
+    copyBtn.TextSize = 11
+    copyBtn.BorderSizePixel = 0
+    copyBtn.Parent = panel
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = copyBtn
+    copyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(jsonBox.Text)
+        elseif toclipboard then
+            toclipboard(jsonBox.Text)
+        else
+            print(jsonBox.Text)
+        end
+    end)
+    
+    local function updateJSON()
         local export = {}
         for k, v in pairs(Settings) do
             if k == "wallhackColor" then
@@ -383,64 +440,46 @@ local function CreateJSONArea(parent)
         end
         jsonBox.Text = game:GetService("HttpService"):JSONEncode(export)
     end
-    
-    local copyBtn = Instance.new("TextButton")
-    copyBtn.Size = UDim2.new(0, 80, 0, 25)
-    copyBtn.Position = UDim2.new(1, -90, 0, 85)
-    copyBtn.Text = "📋 Copy"
-    copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 120)
-    copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    copyBtn.Font = Enum.Font.GothamBold
-    copyBtn.TextSize = 11
-    copyBtn.BorderSizePixel = 0
-    copyBtn.Parent = frame
-    local copyCorner = Instance.new("UICorner")
-    copyCorner.CornerRadius = UDim.new(0, 6)
-    copyCorner.Parent = copyBtn
-    copyBtn.MouseButton1Click:Connect(function()
-        if setclipboard then
-            setclipboard(jsonBox.Text)
-        elseif toclipboard then
-            toclipboard(jsonBox.Text)
-        else
-            print(jsonBox.Text)
-        end
-    end)
     updateJSON()
     return updateJSON
 end
 
--- ========== BUILD UI ==========
-CreateSection(scrollFrame, "Aimbot & Weapons")
-CreateToggle(scrollFrame, "Aimbot (100% Headshot)", "aimbot")
-CreateSlider(scrollFrame, "Aimbot FOV", "aimbotFOV", 30, 300, "°")
-CreateToggle(scrollFrame, "No Recoil", "noRecoil")
-CreateToggle(scrollFrame, "No Spread", "noSpread")
+-- ========== CREATE SECTIONS (Panels) ==========
+-- Panel 1: Aimbot & Weapons (left column)
+local panelAimbot, _ = CreateSectionPanel("Aimbot & Weapons", 1)
+AddToggle(panelAimbot, "Aimbot (100% Headshot)", "aimbot")
+AddSlider(panelAimbot, "Aimbot FOV", "aimbotFOV", 30, 300, "°")
+AddToggle(panelAimbot, "No Recoil", "noRecoil")
+AddToggle(panelAimbot, "No Spread", "noSpread")
 
-CreateSection(scrollFrame, "Visual & Wallhack")
-CreateToggle(scrollFrame, "Player Wallhack", "playerWallhack")
-CreateToggle(scrollFrame, "NPC Wallhack", "npcWallhack")
-CreateColorPicker(scrollFrame, "Wallhack Color", "wallhackColor")
-CreateToggle(scrollFrame, "Player ESP (Transparent)", "playerESP")
+-- Panel 2: Visual & Wallhack (right column)
+local panelVisual, _ = CreateSectionPanel("Visual & Wallhack", 2)
+AddToggle(panelVisual, "Player Wallhack", "playerWallhack")
+AddToggle(panelVisual, "NPC Wallhack", "npcWallhack")
+AddColorPicker(panelVisual, "Wallhack Color", "wallhackColor")
+AddToggle(panelVisual, "Player ESP (Transparent)", "playerESP")
 
-CreateSection(scrollFrame, "Movement")
-CreateToggle(scrollFrame, "Infinite Jump", "infiniteJump")
-CreateToggle(scrollFrame, "Noclip", "noclip")
-CreateSlider(scrollFrame, "Walk Speed", "walkSpeed", 16, 200, "")
-CreateSlider(scrollFrame, "Jump Power", "jumpPower", 50, 500, "")
+-- Panel 3: Movement (left column, second row)
+local panelMove, _ = CreateSectionPanel("Movement", 1) -- layout order 1 again? No, we need to set different order for rows. Actually UIGridLayout orders by LayoutOrder across all panels. For 2 columns, panels with same order appear in same row? Let's use sequential: 1,2 for first row, 3,4 for second row.
+-- Let's destroy previous panels? Simpler: recreate with proper order.
+-- Better: I will reassign layout order after creation.
+panelAimbot.LayoutOrder = 1
+panelVisual.LayoutOrder = 2
 
-CreateSection(scrollFrame, "Combat")
-CreateToggle(scrollFrame, "Kill Aura (Players)", "killAuraPlayer")
-CreateToggle(scrollFrame, "Auto Kill NPCs", "autoKillNPC")
+local panelMove2, _ = CreateSectionPanel("Movement", 3)
+AddToggle(panelMove2, "Infinite Jump", "infiniteJump")
+AddToggle(panelMove2, "Noclip", "noclip")
+AddSlider(panelMove2, "Walk Speed", "walkSpeed", 16, 200, "")
+AddSlider(panelMove2, "Jump Power", "jumpPower", 50, 500, "")
 
-local updateJSON = CreateJSONArea(scrollFrame)
-CreateButton(scrollFrame, "💾 Save & Apply", function()
-    applyAllFeatures()
-    updateJSON()
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Copybara", Text = "Saved & Applied", Duration = 2})
-end)
+local panelCombat, _ = CreateSectionPanel("Combat", 4)
+AddToggle(panelCombat, "Kill Aura (Players)", "killAuraPlayer")
+AddToggle(panelCombat, "Auto Kill NPCs", "autoKillNPC")
 
--- ========== FEATURE IMPLEMENTATION ==========
+-- JSON Area (spans full width)
+local updateJSON = AddJSONArea()
+
+-- ========== FEATURE IMPLEMENTATION (same as before, keep all) ==========
 local function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
@@ -617,7 +656,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end
 end)
 
--- Events
+-- Events for dynamic updates
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         wait(0.5)
@@ -642,12 +681,29 @@ local function applyAllFeatures()
             if tool:IsA("Tool") then modifyWeapon(tool) end
         end
     end
+    updateJSON()
 end
 
 applyAllFeatures()
 
+-- Adjust content grid height when layout changes
+local function updateContentHeight()
+    local totalHeight = 0
+    for _, child in ipairs(contentGrid:GetChildren()) do
+        if child:IsA("Frame") then
+            totalHeight = totalHeight + child.AbsoluteSize.Y + gridLayout.CellPadding.Y.Offset
+        end
+    end
+    contentGrid.Size = UDim2.new(1, 0, 0, totalHeight)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
+end
+-- Wait for layout to settle
+wait(0.5)
+updateContentHeight()
+-- Also update when any panel changes size (but not critical)
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Copybara Hub",
-    Text = "GUI Loaded! Drag to move.",
+    Text = "Grid GUI Loaded! Drag to move.",
     Duration = 3
 })
