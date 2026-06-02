@@ -1,6 +1,6 @@
 -- =========================================================================
 -- Copybara Hub VIP Edition - Optimized Compact Unified GUI Framework
--- Fixed: Click X only hides GUI, can reopen with RightShift
+-- Fixed: Click X only hides GUI, can reopen with RightShift or floating button
 -- =========================================================================
 
 -- Services
@@ -36,7 +36,7 @@ local Settings = {
 
 local activeAutoFConnection = nil
 
--- Forward Declarations for Lexical Integrity
+-- Forward Declarations
 local applyAllFeatures
 local updatePlayerWallhack
 local updateNPCWallhack
@@ -51,20 +51,20 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = game:GetService("CoreGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 310, 0, 280) -- Highly compact visual container
+mainFrame.Size = UDim2.new(0, 310, 0, 280)
 mainFrame.Position = UDim2.new(0.5, -155, 0.5, -140)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 16, 22) -- Obsidian Black
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 16, 22)
 mainFrame.BackgroundTransparency = 0.08
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(80, 100, 220) -- Modern Neon Blue Glow
+mainStroke.Color = Color3.fromRGB(80, 100, 220)
 mainStroke.Thickness = 1.2
 mainStroke.Parent = mainFrame
 mainFrame.Parent = screenGui
 
--- Unified Dragging Logic (Supports Both Touch and Mouse Inputs)
+-- Dragging logic
 local function applyWindowDragging(frame, handle)
     local dragToggle = false
     local dragStart, startPos
@@ -75,7 +75,6 @@ local function applyWindowDragging(frame, handle)
             dragToggle = true
             dragStart = input.Position
             startPos = frame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragToggle = false
@@ -103,7 +102,7 @@ local function applyWindowDragging(frame, handle)
     end)
 end
 
--- Compact Title Bar
+-- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundColor3 = Color3.fromRGB(22, 24, 33)
@@ -125,7 +124,7 @@ titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
 
--- ========== CLOSE BUTTON NOW ONLY HIDES GUI (NOT DESTROY) ==========
+-- Close button (hides instead of destroy)
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 22, 0, 22)
 closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -140,13 +139,12 @@ local closeBtnCorner = Instance.new("UICorner")
 closeBtnCorner.CornerRadius = UDim.new(0, 4)
 closeBtnCorner.Parent = closeBtn
 
--- CHANGE: HIDE instead of destroy
 closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
     openBtn.Visible = true
 end)
 
--- Floating button to reopen GUI (appears when mainFrame is hidden)
+-- Floating button to reopen GUI
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 50, 0, 50)
 openBtn.Position = UDim2.new(0.5, -25, 0.85, -25)
@@ -166,7 +164,7 @@ openBtn.MouseButton1Click:Connect(function()
     openBtn.Visible = false
 end)
 
--- Keybind (RightShift) to toggle GUI visibility
+-- Keybind RightShift to toggle GUI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.RightShift then
@@ -175,7 +173,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Compact Tab Navigation System
+-- Tab Navigation
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, 0, 0, 28)
 tabContainer.Position = UDim2.new(0, 0, 0, 32)
@@ -189,7 +187,6 @@ tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabLayout.Parent = tabContainer
 
 local pages = {}
-local activePage = nil
 
 local function createPage(name)
     local page = Instance.new("ScrollingFrame")
@@ -205,7 +202,6 @@ local function createPage(name)
     local pageLayout = Instance.new("UIListLayout")
     pageLayout.Padding = UDim.new(0, 4)
     pageLayout.Parent = page
-    
     local pagePadding = Instance.new("UIPadding")
     pagePadding.PaddingTop = UDim.new(0, 4)
     pagePadding.PaddingBottom = UDim.new(0, 4)
@@ -217,7 +213,6 @@ local function createPage(name)
     
     pages[name] = page
     
-    -- Create Tab Selection Button
     local tabBtn = Instance.new("TextButton")
     tabBtn.Size = UDim2.new(0.333, 0, 1, 0)
     tabBtn.BackgroundTransparency = 1
@@ -236,9 +231,7 @@ local function createPage(name)
         end
         page.Visible = true
         tabBtn.TextColor3 = Color3.fromRGB(100, 150, 255)
-        activePage = page
     end)
-    
     return page
 end
 
@@ -246,13 +239,10 @@ local pageMain = createPage("Cheats")
 local pageAutoF = createPage("Auto-F (VIP)")
 local pageConfig = createPage("Config")
 
--- Default initialization of active page
 pages["Cheats"].Visible = true
 tabContainer:FindFirstChildOfClass("TextButton").TextColor3 = Color3.fromRGB(100, 150, 255)
 
--- ========== COMPACT HELPER INTERACTION BUILDERS ==========
--- (Same as before, no changes needed here)
-
+-- ========== UI COMPONENTS ==========
 local function CreateSection(parent, name)
     local section = Instance.new("TextLabel")
     section.Text = "-- ".. name.. " --"
@@ -495,9 +485,9 @@ local function CreateButton(parent, text, callback)
     return btn
 end
 
--- ========== BUILD MULTI-TAB VIEWPORT LAYOUTS ==========
+-- ========== BUILD UI (TABS) ==========
 
--- Page 1: Standard Cheats
+-- Cheats tab
 CreateSection(pageMain, "Aimbot & Weapons")
 CreateToggle(pageMain, "Aimbot (100% Headshot)", "aimbot")
 CreateSlider(pageMain, "Aimbot FOV", "aimbotFOV", 30, 300, "°")
@@ -520,7 +510,7 @@ CreateSection(pageMain, "Combat Operations")
 CreateToggle(pageMain, "Kill Aura (Players)", "killAuraPlayer")
 CreateToggle(pageMain, "Auto Kill NPCs", "autoKillNPC")
 
--- Page 2: VIP Mobile-Friendly Auto-F Automation
+-- Auto-F VIP tab
 CreateSection(pageAutoF, "Auto-F Injection Control")
 
 local function dispatchKeyF()
@@ -548,11 +538,10 @@ CreateToggle(pageAutoF, "Enable VIP Auto-F", "autoFEnabled", function()
         executeAutoFLoop()
     end
 end)
-
 CreateToggle(pageAutoF, "Pause Intermittent Press", "autoFPaused", function() end)
 CreateSlider(pageAutoF, "Press Frequency", "autoFSpeed", 5, 30, "/sec", function() end)
 
--- Page 3: Configuration Backup & Save Engine
+-- Config tab
 local function CreateJSONArea(parent)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 75)
@@ -631,7 +620,6 @@ local function CreateJSONArea(parent)
 end
 
 local updateConfigDisplay = CreateJSONArea(pageConfig)
-
 CreateButton(pageConfig, "💾 Save & Apply Modifications", function()
     applyAllFeatures()
     updateConfigDisplay()
@@ -644,7 +632,7 @@ CreateButton(pageConfig, "💾 Save & Apply Modifications", function()
     end)
 end)
 
--- ========== UNDER-THE-HOOD CHEAT SYSTEMS ==========
+-- ========== FEATURE IMPLEMENTATIONS ==========
 function applyMovement()
     local char = LocalPlayer.Character
     if char then
@@ -719,7 +707,6 @@ function updatePlayerESP()
     end
 end
 
--- Jump Request Automation
 UserInputService.JumpRequest:Connect(function()
     if Settings.infiniteJump then
         local char = LocalPlayer.Character
@@ -732,7 +719,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Standard Noclip Step Handler
 RunService.Stepped:Connect(function()
     if Settings.noclip and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -743,7 +729,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Target Killing Automation Processes
 RunService.Heartbeat:Connect(function()
     if Settings.killAuraPlayer then
         local myChar = LocalPlayer.Character
@@ -775,7 +760,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Aimbot Math Module
 RunService.RenderStepped:Connect(function()
     if not Settings.aimbot then return end
     local camera = workspace.CurrentCamera
@@ -828,7 +812,6 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end
 end)
 
--- Workspace Event Hooks
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         task.wait(0.5)
@@ -856,7 +839,6 @@ function applyAllFeatures()
     end
 end
 
--- Initialize Loop
 applyAllFeatures()
 
 pcall(function()
