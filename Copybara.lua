@@ -706,5 +706,4 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Copybara Hub",
     Text = "Grid GUI Loaded! Drag to move.",
     Duration = 3
-        
 })
