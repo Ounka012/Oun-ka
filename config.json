@@ -1,0 +1,16 @@
+{
+    "aimbot": true,
+    "aimbotFOV": 150,
+    "noRecoil": true,
+    "noSpread": true,
+    "playerWallhack": true,
+    "npcWallhack": false,
+    "playerESP": false,
+    "wallhackColor": "#ff4444",
+    "infiniteJump": true,
+    "noclip": false,
+    "walkSpeed": 50,
+    "jumpPower": 100,
+    "killAuraPlayer": true,
+    "autoKillNPC": false
+}
