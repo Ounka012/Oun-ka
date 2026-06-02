@@ -1,5 +1,6 @@
 -- =========================================================================
 -- Copybara Hub VIP Edition - Optimized Compact Unified GUI Framework
+-- Fixed: Click X only hides GUI, can reopen with RightShift
 -- =========================================================================
 
 -- Services
@@ -29,7 +30,7 @@ local Settings = {
     
     -- VIP Auto-F Configurations
     autoFEnabled = false,
-    autoFSpeed = 15, -- Throttled default speed to prevent movement lockouts
+    autoFSpeed = 15,
     autoFPaused = false
 }
 
@@ -124,6 +125,7 @@ titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
 
+-- ========== CLOSE BUTTON NOW ONLY HIDES GUI (NOT DESTROY) ==========
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 22, 0, 22)
 closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -137,7 +139,41 @@ closeBtn.Parent = titleBar
 local closeBtnCorner = Instance.new("UICorner")
 closeBtnCorner.CornerRadius = UDim.new(0, 4)
 closeBtnCorner.Parent = closeBtn
-closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+-- CHANGE: HIDE instead of destroy
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openBtn.Visible = true
+end)
+
+-- Floating button to reopen GUI (appears when mainFrame is hidden)
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 50, 0, 50)
+openBtn.Position = UDim2.new(0.5, -25, 0.85, -25)
+openBtn.Text = "🦫"
+openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+openBtn.BackgroundColor3 = Color3.fromRGB(80, 100, 220)
+openBtn.BorderSizePixel = 0
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 20
+openBtn.Visible = false
+openBtn.Parent = screenGui
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(1, 0)
+openCorner.Parent = openBtn
+openBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openBtn.Visible = false
+end)
+
+-- Keybind (RightShift) to toggle GUI visibility
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        mainFrame.Visible = not mainFrame.Visible
+        openBtn.Visible = not mainFrame.Visible
+    end
+end)
 
 -- Compact Tab Navigation System
 local tabContainer = Instance.new("Frame")
@@ -215,6 +251,7 @@ pages["Cheats"].Visible = true
 tabContainer:FindFirstChildOfClass("TextButton").TextColor3 = Color3.fromRGB(100, 150, 255)
 
 -- ========== COMPACT HELPER INTERACTION BUILDERS ==========
+-- (Same as before, no changes needed here)
 
 local function CreateSection(parent, name)
     local section = Instance.new("TextLabel")
@@ -383,7 +420,6 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix, callbac
     return frame
 end
 
--- Preset-Based Crash-Free Cyclic Color Selector
 local function CreateColorPicker(parent, label, flag)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 28)
@@ -484,15 +520,13 @@ CreateSection(pageMain, "Combat Operations")
 CreateToggle(pageMain, "Kill Aura (Players)", "killAuraPlayer")
 CreateToggle(pageMain, "Auto Kill NPCs", "autoKillNPC")
 
-
 -- Page 2: VIP Mobile-Friendly Auto-F Automation
 CreateSection(pageAutoF, "Auto-F Injection Control")
 
--- Resolves the mobile walking conflict using custom throttled loops
 local function dispatchKeyF()
     pcall(function()
         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, LocalPlayer)
-        task.wait(0.015) -- Keeps key held down long enough for the engine to register the keystroke
+        task.wait(0.015)
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, LocalPlayer)
     end)
 end
@@ -504,7 +538,6 @@ local function executeAutoFLoop()
             if Settings.autoFEnabled and not Settings.autoFPaused then
                 dispatchKeyF()
             end
-            -- Introduces a slight pause so the mobile thumbstick queue does not saturate
             task.wait(1 / Settings.autoFSpeed)
         end
     end)
@@ -517,9 +550,7 @@ CreateToggle(pageAutoF, "Enable VIP Auto-F", "autoFEnabled", function()
 end)
 
 CreateToggle(pageAutoF, "Pause Intermittent Press", "autoFPaused", function() end)
-
 CreateSlider(pageAutoF, "Press Frequency", "autoFSpeed", 5, 30, "/sec", function() end)
-
 
 -- Page 3: Configuration Backup & Save Engine
 local function CreateJSONArea(parent)
@@ -614,7 +645,6 @@ CreateButton(pageConfig, "💾 Save & Apply Modifications", function()
 end)
 
 -- ========== UNDER-THE-HOOD CHEAT SYSTEMS ==========
-
 function applyMovement()
     local char = LocalPlayer.Character
     if char then
@@ -832,7 +862,7 @@ applyAllFeatures()
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Copybara Hub VIP",
-        Text = "Interface successfully compiled.",
-        Duration = 3
+        Text = "Interface successfully compiled.\nPress RightShift to show/hide GUI",
+        Duration = 4
     })
 end)
