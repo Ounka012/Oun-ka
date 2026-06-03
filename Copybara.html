@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 MP3 Converter - បម្លែងវីដេអូទៅជា MP3</title>
+    
+    <!-- Google Fonts សម្រាប់អក្សរខ្មែរស្អាត -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ការកំណត់មូលដ្ឋាន */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans Khmer', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f0f0f 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* ស្រទាប់ផ្ទៃខាងក្រោយមានចលនា */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0, 200, 0, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ប្រអប់កណ្តាល */
+        .converter-box {
+            position: relative;
+            z-index: 1;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(0, 255, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .converter-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 30px 70px rgba(0, 0, 0, 0.6),
+                0 0 50px rgba(0, 255, 0, 0.15);
+        }
+
+        /* រូបតំណាង និងចំណងជើង */
+        .icon-wrapper {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #00c853, #009624);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 35px;
+            box-shadow: 0 10px 30px rgba(0, 200, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, #a5d6a7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #a0a0a0;
+            margin-bottom: 25px;
+            font-weight: 300;
+        }
+
+        /* ប្រអប់បញ្ចូល URL */
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 20px;
+            background: #2a2a2a;
+            border: 2px solid #3a3a3a;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: 'Noto Sans Khmer', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: #00c853;
+            box-shadow: 0 0 20px rgba(0, 200, 0, 0.2);
+            background: #252525;
+        }
+
+        .input-group input::placeholder {
+            color: #707070;
+            font-size: 14px;
+        }
+
+        /* ប៊ូតុងបម្លែង */
+        .convert-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #00c853, #009624);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Noto Sans Khmer', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(0, 200, 0, 0.3);
+        }
+
+        .convert-btn:hover {
+            background: linear-gradient(135deg, #00e676, #00c853);
+            box-shadow: 0 12px 35px rgba(0, 200, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .convert-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(0, 200, 0, 0.3);
+        }
+
+        /* សារបង្ហាញលទ្ធផល */
+        #msg {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .msg-error {
+            background: rgba(244, 67, 54, 0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .msg-info {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffd54f;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        /* របារព័ត៌មានបន្ថែម */
+        .info-text {
+            margin-top: 25px;
+            font-size: 11px;
+            color: #606060;
+            border-top: 1px solid #2a2a2a;
+            padding-top: 15px;
+        }
+
+        /* ការឆ្លើយតបលើអេក្រង់តូច */
+        @media (max-width: 480px) {
+            .converter-box {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .convert-btn {
+                font-size: 15px;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="converter-box">
+        <!-- រូបតំណាងតន្ត្រី -->
+        <div class="icon-wrapper">🎵</div>
+        
+        <!-- ចំណងជើង -->
+        <h1>MP3 Converter</h1>
+        <p class="subtitle">បម្លែងវីដេអូទៅជាសម្លេង MP3</p>
+        
+        <!-- ប្រអប់បញ្ចូល URL -->
+        <div class="input-group">
+            <input 
+                type="url" 
+                id="url" 
+                placeholder="បិទភ្ជាប់តំណភ្ជាប់ (URL) នៅទីនេះ..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+        </div>
+        
+        <!-- ប៊ូតុងបម្លែង -->
+        <button class="convert-btn" onclick="convertToMp3()">
+            ⚡ បម្លែងជា MP3
+        </button>
+        
+        <!-- សារបង្ហាញលទ្ធផល -->
+        <div id="msg"></div>
+        
+        <!-- ព័ត៌មានបន្ថែម -->
+        <p class="info-text">
+            💡 គាំទ្រ៖ YouTube, Facebook, TikTok និងច្រើនទៀត
+        </p>
+    </div>
+
+    <script>
+        /**
+         * មុខងារបម្លែង URL ទៅ MP3
+         * បច្ចុប្បន្នជាការបង្ហាញសារគំរូ (Frontend Demo)
+         */
+        function convertToMp3() {
+            const urlInput = document.getElementById('url');
+            const msgElement = document.getElementById('msg');
+            const url = urlInput.value.trim();
+
+            // ពិនិត្យថាមាន URL ឬអត់
+            if (!url) {
+                showMessage('⚠️ សូមបញ្ចូលតំណភ្ជាប់ (URL) ជាមុនសិន!', 'msg-error');
+                urlInput.focus();
+                return;
+            }
+
+            // ពិនិត្យទម្រង់ URL សាមញ្ញ
+            if (!isValidUrl(url)) {
+                showMessage('❌ តំណភ្ជាប់មិនត្រឹមត្រូវ សូមពិនិត្យម្ដងទៀត', 'msg-error');
+                return;
+            }
+
+            // បង្ហាញសារកំពុងដំណើរការ
+            showMessage('⏳ កំពុងដំណើរការ...', 'msg-info');
+
+            // ក្លែងធ្វើការដំណើរការ (Simulate processing)
+            setTimeout(() => {
+                showMessage(
+                    'ℹ️ នេះជាគំរូ Frontend តែប៉ុណ្ណោះ។ ត្រូវការ Backend Server សម្រាប់បម្លែងពិតប្រាកដ។', 
+                    'msg-info'
+                );
+                console.log('📎 URL ដែលបានបញ្ចូល៖', url);
+            }, 1500);
+        }
+
+        /**
+         * ពិនិត្យសុពលភាព URL
+         */
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        /**
+         * បង្ហាញសារទៅកាន់អ្នកប្រើ
+         */
+        function showMessage(text, className = '') {
+            const msgElement = document.getElementById('msg');
+            msgElement.textContent = text;
+            msgElement.className = className;
+        }
+
+        // គាំទ្រការចុច Enter ដើម្បីបម្លែង
+        document.getElementById('url').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                convertToMp3();
+            }
+        });
+    </script>
+
+</body>
+</html>
