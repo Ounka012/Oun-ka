@@ -1,3 +1,4 @@
+```lua
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -408,7 +409,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     sliderBar.Position = UDim2.new(0,8,0,22)
     sliderBar.BackgroundColor3 = Color3.fromRGB(60,65,85)
     sliderBar.BorderSizePixel = 0
-    sliderBar.Parent = sliderBar
+    sliderBar.Parent = frame
     Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(1,0)
 
     local range = maxVal - minVal
@@ -1093,3 +1094,4 @@ game:BindToClose(function()
     end
     ESPContainer:Destroy()
 end)
+```
