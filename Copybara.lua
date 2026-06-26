@@ -27,11 +27,20 @@ local followConnection = nil
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHubVIP_Lotus"
 screenGui.ResetOnSpawn = false
-pcall(function() screenGui.Parent = CoreGui end)
-if not screenGui.Parent then
-    pcall(function() screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end)
+
+-- ព្យាយាមដាក់ GUI ទៅ CoreGui ឬ PlayerGui
+local function setupGUI()
+    pcall(function() screenGui.Parent = CoreGui end)
+    if not screenGui.Parent then
+        pcall(function() screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 2) end)
+    end
+    if not screenGui.Parent then
+        warn("មិនអាចបង្កើត GUI")
+        return false
+    end
+    return true
 end
-if not screenGui.Parent then return warn("មិនអាចបង្កើត GUI") end
+if not setupGUI() then return end
 
 -- ពណ៌ចម្រុះ
 local BG = Color3.fromRGB(18,16,24)
@@ -55,11 +64,11 @@ Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
 local toggleStroke = Instance.new("UIStroke", floatingToggle)
 toggleStroke.Color = Accent; toggleStroke.Thickness = 1
 
--- [[[ កែថ្មី ]]] ធ្វើឲ្យប៊ូតុងអូសបាន + ចុចដើម្បីបិទ/បើក Menu
+-- ធ្វើឲ្យប៊ូតុងអូសបាន + ចុចដើម្បីបិទ/បើក Menu
 local dragStartPos = nil
 local dragOffset = Vector2.zero
 local isDragging = false
-local dragThreshold = 20  -- ចម្ងាយ 20px ឡើងទៅចាត់ទុកជាការអូស
+local dragThreshold = 20
 
 floatingToggle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -76,9 +85,13 @@ floatingToggle.InputEnded:Connect(function(input)
     end
 end)
 
--- ការចុចធម្មតា (បិទ/បើក Menu) ប្រើ MouseButton1Click ដើម្បីភាពជាក់លាក់
+-- ការចុចធម្មតា (បិទ/បើក Menu) - ពិនិត្យ mainFrame មុន
+local mainFrame = nil  -- នឹងត្រូវបានកំណត់នៅពេលក្រោយ
+
 floatingToggle.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+    if mainFrame then
+        mainFrame.Visible = not mainFrame.Visible
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -91,7 +104,7 @@ UserInputService.InputChanged:Connect(function(input)
         end
         if isDragging then
             local newPos = input.Position + dragOffset
-            local screenSize = workspace.CurrentCamera.ViewportSize
+            local screenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
             local btnSize = floatingToggle.AbsoluteSize
             newPos = Vector2.new(
                 math.clamp(newPos.X, 0, screenSize.X - btnSize.X),
@@ -103,7 +116,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- ស៊ុមមេ
-local mainFrame = Instance.new("Frame")
+mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 280, 0, 260)
 mainFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
 mainFrame.BackgroundColor3 = BG
@@ -142,7 +155,7 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 10
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
-closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
+closeBtn.MouseButton1Click:Connect(function() if mainFrame then mainFrame.Visible = false end end)
 
 -- ស៊ុមរំកិល
 local scrollFrame = Instance.new("ScrollingFrame")
@@ -262,7 +275,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
 
     local knob = Instance.new("Frame")
     knob.Size = UDim2.new(0,8,0,8)
-    knob.Position = UDim2.new(percent,-4,0.5,-4)
+    knob.Position = UDim2.new(percent, -4, 0.5, -4)  -- កែ: percent ជា number
     knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
     knob.BorderSizePixel = 0
     knob.Parent = sliderBar
@@ -285,6 +298,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
         end
     end)
     local function updateSlider(input)
+        if not sliderBar or not sliderBar.AbsoluteSize or sliderBar.AbsoluteSize.X == 0 then return end
         local pos = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
         local newVal = minVal + (maxVal - minVal) * pos
         if flag == "walkSpeed" then newVal = math.floor(newVal)
@@ -293,7 +307,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
         newVal = math.clamp(newVal, minVal, maxVal)
         Settings[flag] = newVal
         fill.Size = UDim2.new(pos,0,1,0)
-        knob.Position = UDim2.new(pos,-4,0.5,-4)
+        knob.Position = UDim2.new(pos, -4, 0.5, -4)
         valueLabel.Text = tostring(newVal)..(suffix or "")
         if flag == "walkSpeed" or flag == "jumpPower" then applyMovement() end
     end
@@ -701,7 +715,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Aimbot
+-- Aimbot (បានកែបន្ថែមការត្រួតពិនិត្យ)
 RunService.RenderStepped:Connect(function()
     if not Settings.aimbot then return end
     local camera = workspace.CurrentCamera
@@ -784,13 +798,14 @@ local spamSoundObject = nil
 local function updateSpamSounds()
     if Settings.spamSounds then
         if not spamSoundObject then
-            if LocalPlayer.Character then
+            local char = LocalPlayer.Character
+            if char then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://82628393182263" -- សំឡេង ding ត្រឹមត្រូវ
+                spamSoundObject.SoundId = "rbxassetid://82628393182263"
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
-                spamSoundObject.Parent = LocalPlayer.Character
+                spamSoundObject.Parent = char
                 spamSoundObject:Play()
             end
         end
