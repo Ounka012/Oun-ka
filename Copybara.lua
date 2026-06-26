@@ -43,7 +43,7 @@ local floatingToggle = Instance.new("TextButton")
 floatingToggle.Size = UDim2.new(0, 46, 0, 46)
 floatingToggle.Position = UDim2.new(0.06, 0, 0.24, 0)
 floatingToggle.BackgroundColor3 = Panel
-floatingToggle.Text = "🪷"
+floatingToggle.Text = "🌱"
 floatingToggle.TextColor3 = Color3.fromRGB(255,255,255)
 floatingToggle.Font = Enum.Font.GothamBold
 floatingToggle.TextSize = 20
@@ -73,7 +73,7 @@ titleBar.Parent = mainFrame
 local titleCorner = Instance.new("UICorner"); titleCorner.CornerRadius = UDim.new(0,8); titleCorner.Parent = titleBar
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1,-48,1,0); titleLabel.Position = UDim2.new(0,10,0,0)
-titleLabel.Text = "🪷 Copybara VIP"
+titleLabel.Text = "🌱 Copybara VIP"
 titleLabel.TextColor3 = Soft; titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold; titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left; titleLabel.Parent = titleBar
@@ -677,8 +677,8 @@ applyAllFeatures()
 -- Notification
 pcall(function()
     CoreGui:SetCore("SendNotification", {
-        Title = "🪷 Copybara VIP",
-        Text = "Loaded — Lotus mode active. Tap 🪷 to toggle.",
+        Title = "🌱 Copybara VIP",
+        Text = "Loaded — Lotus mode active. Tap ☘️ to toggle.",
         Duration = 3
     })
 end)
