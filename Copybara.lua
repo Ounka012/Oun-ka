@@ -1,11 +1,10 @@
--- [[ Copybara Hub VIP - Mobile Edition (កែសម្រួលសម្រាប់ Delta Mobile) ]]
+-- [[ Copybara Hub VIP - Mobile Edition (ជួសជុលកំហុស Vector2/Fly) ]]
 -- មុខងារ៖ Aimbot, Silent Aim, Wallhack, ESP (GUI), Fly, Teleport, Anti-AFK, Keybind
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
@@ -17,7 +16,7 @@ local Settings = {
     noRecoil = false, noSpread = false,
     playerWallhack = false, npcWallhack = false,
     wallhackColor = Color3.fromRGB(220,150,200),
-    boxESP = false, tracers = false, nameESP = false, healthBar = false, fovCircle = false,
+    boxESP = false, tracers = false, nameESP = false, healthBar = false,
     infiniteJump = false, noclip = false, fly = false,
     walkSpeed = 16, jumpPower = 50,
     killAuraPlayer = false, autoKillNPC = false, giantTool = false,
@@ -28,24 +27,20 @@ local followConnection = nil
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 
--- ========== Keybind System ==========
-local Keybinds = {
-    aimbot = nil, wallhack = nil, fly = nil, triggerbot = nil
-}
+-- ========== Keybind ==========
+local Keybinds = { aimbot = nil, wallhack = nil, fly = nil, triggerbot = nil }
 local awaitingKeybind = nil
 
--- ========== ESP GUI (ជំនួស Drawing) ==========
+-- ========== ESP GUI ==========
 local ESPContainer = Instance.new("Folder")
 ESPContainer.Name = "ESP_Folder"
 ESPContainer.Parent = CoreGui
 
--- បង្កើត ESP សម្រាប់អ្នកលេងម្នាក់ៗ
 local function CreateESPForPlayer(player)
     if player == LocalPlayer then return end
     local char = player.Character
     if not char then return end
 
-    -- បង្កើត Frame Box
     local box = Instance.new("Frame")
     box.Size = UDim2.new(0, 40, 0, 60)
     box.BackgroundTransparency = 0.5
@@ -55,7 +50,6 @@ local function CreateESPForPlayer(player)
     box.Visible = Settings.boxESP
     box.Parent = ESPContainer
 
-    -- Tracer (បន្ទាត់ពីក្រោមអេក្រង់)
     local tracer = Instance.new("Frame")
     tracer.Size = UDim2.new(0, 2, 0, 100)
     tracer.BackgroundColor3 = Color3.fromRGB(255,0,0)
@@ -63,7 +57,6 @@ local function CreateESPForPlayer(player)
     tracer.Visible = Settings.tracers
     tracer.Parent = ESPContainer
 
-    -- ឈ្មោះ និង Health
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Text = player.Name
     nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
@@ -80,25 +73,15 @@ local function CreateESPForPlayer(player)
     healthBar.Visible = Settings.healthBar
     healthBar.Parent = ESPContainer
 
-    -- រក្សាទុកក្នុងតារាង
-    local espData = {
-        box = box,
-        tracer = tracer,
-        name = nameLabel,
-        health = healthBar,
-        player = player
-    }
-    return espData
+    return { box = box, tracer = tracer, name = nameLabel, health = healthBar, player = player }
 end
 
-local ESPList = {} -- { [player] = espData }
+local ESPList = {}
 
--- អាប់ដេតទីតាំង ESP
 local function UpdateESP()
     local viewport = Camera and Camera.ViewportSize or Vector2.new(1920, 1080)
     for player, data in pairs(ESPList) do
         if not player.Character then
-            -- លុប ESP បើអ្នកលេងចាកចេញ
             for _, obj in pairs({data.box, data.tracer, data.name, data.health}) do
                 if obj then obj:Destroy() end
             end
@@ -107,31 +90,29 @@ local function UpdateESP()
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
             local head = player.Character:FindFirstChild("Head")
             local hum = player.Character:FindFirstChild("Humanoid")
-            if hrp and head and hum then
+            if hrp and head and hum and Camera then
                 local pos, onScreen = Camera:WorldToScreenPoint(hrp.Position)
                 local headPos, headOnScreen = Camera:WorldToScreenPoint(head.Position)
                 if onScreen and headOnScreen then
+                    -- បំប្លែងទៅជា Vector2 ដើម្បីកុំឲ្យមានកំហុស
+                    local pos2 = Vector2.new(pos.X, pos.Y)
+                    local headPos2 = Vector2.new(headPos.X, headPos.Y)
                     local scale = 200 / (Camera.CFrame.Position - hrp.Position).Magnitude
                     local boxSize = Vector2.new(scale * 1.2, scale * 2)
 
-                    -- Box
-                    data.box.Position = UDim2.new(0, pos.X - boxSize.X/2, 0, pos.Y - boxSize.Y/2)
+                    data.box.Position = UDim2.new(0, pos2.X - boxSize.X/2, 0, pos2.Y - boxSize.Y/2)
                     data.box.Size = UDim2.new(0, boxSize.X, 0, boxSize.Y)
                     data.box.Visible = Settings.boxESP
 
-                    -- Tracer (ពីក្រោមអេក្រង់)
                     data.tracer.Position = UDim2.new(0, viewport.X/2, 0, viewport.Y)
-                    data.tracer.Size = UDim2.new(0, 2, 0, viewport.Y - pos.Y)
-                    data.tracer.Rotation = math.deg(math.atan2(pos.X - viewport.X/2, viewport.Y - pos.Y))
+                    data.tracer.Size = UDim2.new(0, 2, 0, viewport.Y - pos2.Y)
                     data.tracer.Visible = Settings.tracers
 
-                    -- Name
-                    data.name.Position = UDim2.new(0, pos.X - 40, 0, pos.Y - boxSize.Y/2 - 20)
+                    data.name.Position = UDim2.new(0, pos2.X - 40, 0, pos2.Y - boxSize.Y/2 - 20)
                     data.name.Visible = Settings.nameESP
 
-                    -- Health Bar
                     local healthPercent = hum.Health / hum.MaxHealth
-                    data.health.Position = UDim2.new(0, pos.X - boxSize.X/2, 0, pos.Y + boxSize.Y/2 + 2)
+                    data.health.Position = UDim2.new(0, pos2.X - boxSize.X/2, 0, pos2.Y + boxSize.Y/2 + 2)
                     data.health.Size = UDim2.new(0, boxSize.X * healthPercent, 0, 4)
                     data.health.BackgroundColor3 = (healthPercent > 0.5) and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
                     data.health.Visible = Settings.healthBar
@@ -146,7 +127,6 @@ local function UpdateESP()
     end
 end
 
--- បន្ថែមអ្នកលេងថ្មីទៅ ESP
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         task.wait(0.5)
@@ -156,14 +136,12 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
--- ដំបូងបន្ថែមអ្នកលេងដែលមានស្រាប់
 for _, player in ipairs(Players:GetPlayers()) do
     if player ~= LocalPlayer and player.Character then
         ESPList[player] = CreateESPForPlayer(player)
     end
 end
 
--- អាប់ដេត ESP រៀងរាល់ស៊ុម
 RunService.RenderStepped:Connect(UpdateESP)
 
 -- ========== GUI ==========
@@ -720,7 +698,6 @@ CreateButton(scrollFrame, "Stop", function()
     followTarget = nil
 end)
 
--- Config
 CreateButton(scrollFrame, "💾 Apply All", function()
     applyAllFeatures()
     pcall(function()
@@ -790,7 +767,7 @@ function updateNPCWallhack()
     end
 end
 
--- Fly
+-- FLY (ជួសជុល)
 function toggleFly()
     local char = LocalPlayer.Character
     if not char then return end
@@ -819,7 +796,7 @@ function toggleFly()
     end
 end
 
--- Fly Controls
+-- Fly Controls (ជួសជុល)
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if not Settings.fly or not flyBodyVelocity then return end
@@ -833,12 +810,18 @@ UserInputService.InputBegan:Connect(function(input, processed)
     local cam = Camera
     if not cam then return end
 
-    if input.KeyCode == Enum.KeyCode.W then vel = vel + cam.CFrame.LookVector * speed
-    elseif input.KeyCode == Enum.KeyCode.S then vel = vel - cam.CFrame.LookVector * speed
-    elseif input.KeyCode == Enum.KeyCode.A then vel = vel - cam.CFrame.RightVector * speed
-    elseif input.KeyCode == Enum.KeyCode.D then vel = vel + cam.CFrame.RightVector * speed
-    elseif input.KeyCode == Enum.KeyCode.Space then vel = vel + Vector3.new(0, speed, 0)
-    elseif input.KeyCode == Enum.KeyCode.LeftShift then vel = vel - Vector3.new(0, speed, 0)
+    if input.KeyCode == Enum.KeyCode.W then
+        vel = vel + cam.CFrame.LookVector * speed
+    elseif input.KeyCode == Enum.KeyCode.S then
+        vel = vel - cam.CFrame.LookVector * speed
+    elseif input.KeyCode == Enum.KeyCode.A then
+        vel = vel - cam.CFrame.RightVector * speed
+    elseif input.KeyCode == Enum.KeyCode.D then
+        vel = vel + cam.CFrame.RightVector * speed
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        vel = vel + Vector3.new(0, speed, 0)
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        vel = vel - Vector3.new(0, speed, 0)
     end
     flyBodyVelocity.Velocity = vel
 end)
@@ -856,7 +839,7 @@ RunService.Heartbeat:Connect(function(dt)
             end
             pcall(function()
                 local mouse = UserInputService:GetMouseLocation()
-                UserInputService:SetMouseLocation(mouse.X + math.random(-5,5), mouse.Y + math.random(-5,5))
+                UserInputService:SetMouseLocation(Vector2.new(mouse.X + math.random(-5,5), mouse.Y + math.random(-5,5)))
             end)
         end
     else
@@ -864,27 +847,30 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- Triggerbot
+-- Triggerbot (ជួសជុល SetMouseLocation)
 RunService.RenderStepped:Connect(function()
     if not Settings.triggerbot then return end
     local mouse = UserInputService:GetMouseLocation()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local head = player.Character:FindFirstChild("Head")
-            if head then
+            if head and Camera then
                 local pos, onScreen = Camera:WorldToScreenPoint(head.Position)
-                if onScreen and (Vector2.new(pos.X, pos.Y) - mouse).Magnitude < 15 then
-                    pcall(function()
-                        if mouse1click then mouse1click() end
-                    end)
-                    break
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                    if dist < 15 then
+                        pcall(function()
+                            if mouse1click then mouse1click() end
+                        end)
+                        break
+                    end
                 end
             end
         end
     end
 end)
 
--- Aimbot
+-- Aimbot (ជួសជុល SetMouseLocation)
 RunService.RenderStepped:Connect(function()
     if not Settings.aimbot then return end
     local cam = Camera
@@ -918,7 +904,7 @@ RunService.RenderStepped:Connect(function()
             local screenPos, onScreen = cam:WorldToScreenPoint(closest.Position)
             if onScreen then
                 pcall(function()
-                    UserInputService:SetMouseLocation(screenPos.X, screenPos.Y)
+                    UserInputService:SetMouseLocation(Vector2.new(screenPos.X, screenPos.Y))
                 end)
             end
         else
@@ -1102,7 +1088,6 @@ workspace.DescendantAdded:Connect(function(desc)
     end
 end)
 
--- Apply All
 function applyAllFeatures()
     applyMovement()
     updatePlayerWallhack()
@@ -1127,7 +1112,7 @@ pcall(function()
     })
 end)
 
--- Cleanup ESP on exit
+-- Cleanup
 game:BindToClose(function()
     for _, data in pairs(ESPList) do
         for _, obj in pairs({data.box, data.tracer, data.name, data.health}) do
