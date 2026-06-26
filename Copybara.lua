@@ -1,11 +1,9 @@
-```lua
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -20,6 +18,7 @@ local Settings = {
     killAuraPlayer = false, autoKillNPC = false, giantTool = false,
     antiAfk = false, spamSounds = false,
 }
+
 local followTarget = nil
 local followConnection = nil
 local flyBodyVelocity = nil
@@ -91,6 +90,7 @@ local function UpdateESP()
                 local headPos, headOnScreen = Camera:WorldToScreenPoint(head.Position)
                 if onScreen and headOnScreen then
                     local pos2 = Vector2.new(pos.X, pos.Y)
+                    local headPos2 = Vector2.new(headPos.X, headPos.Y)
                     local scale = 200 / (Camera.CFrame.Position - hrp.Position).Magnitude
                     local boxSize = Vector2.new(scale * 1.2, scale * 2)
 
@@ -174,6 +174,7 @@ floatingToggle.TextSize = 20
 floatingToggle.AutoButtonColor = false
 floatingToggle.Parent = screenGui
 Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
+
 pcall(function()
     local stroke = Instance.new("UIStroke", floatingToggle)
     stroke.Color = Accent
@@ -202,14 +203,18 @@ end)
 
 local mainFrame = nil
 floatingToggle.MouseButton1Click:Connect(function()
-    if mainFrame then mainFrame.Visible = not mainFrame.Visible end
+    if mainFrame then
+        mainFrame.Visible = not mainFrame.Visible
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragStartPos then
         if not isDragging then
             local delta = (input.Position - dragStartPos).Magnitude
-            if delta > dragThreshold then isDragging = true end
+            if delta > dragThreshold then
+                isDragging = true
+            end
         end
         if isDragging then
             local newPos = input.Position + dragOffset
@@ -232,6 +237,7 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,8)
+
 pcall(function()
     local stroke = Instance.new("UIStroke", mainFrame)
     stroke.Color = Accent
@@ -244,6 +250,7 @@ titleBar.BackgroundColor3 = Panel
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,8)
+
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1,-48,1,0)
 titleLabel.Position = UDim2.new(0,10,0,0)
@@ -266,7 +273,11 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 10
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
-closeBtn.MouseButton1Click:Connect(function() if mainFrame then mainFrame.Visible = false end end)
+closeBtn.MouseButton1Click:Connect(function()
+    if mainFrame then
+        mainFrame.Visible = false
+    end
+end)
 
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1,-10,1,-36)
@@ -275,13 +286,16 @@ scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
 scrollFrame.ScrollBarThickness = 3
 scrollFrame.Parent = mainFrame
+
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0,6)
 listLayout.Parent = scrollFrame
+
 local padding = Instance.new("UIPadding")
 padding.PaddingTop = UDim.new(0,4)
 padding.PaddingBottom = UDim.new(0,4)
 padding.Parent = scrollFrame
+
 listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,listLayout.AbsoluteContentSize.Y+8)
 end)
@@ -357,6 +371,7 @@ local function CreateToggle(parent, label, flag, keybindFlag)
         keyBtn.BorderSizePixel = 0
         keyBtn.Parent = frame
         Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0,4)
+
         keyBtn.MouseButton1Click:Connect(function()
             awaitingKeybind = keybindFlag
             keyBtn.Text = "..."
@@ -414,6 +429,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
 
     local range = maxVal - minVal
     local percent = (range > 0) and ((Settings[flag] - minVal) / range) or 0.5
+
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(percent,0,1,0)
     fill.BackgroundColor3 = Accent
@@ -440,35 +456,46 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     valueLabel.Parent = frame
 
     local sliding = false
+
     knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             sliding = true
         end
     end)
+
     local function updateSlider(input)
         if not sliderBar or not sliderBar.AbsoluteSize or sliderBar.AbsoluteSize.X == 0 then return end
         local pos = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
         local newVal = minVal + (maxVal - minVal) * pos
-        if flag == "walkSpeed" then newVal = math.floor(newVal)
-        elseif flag == "jumpPower" then newVal = math.floor(newVal/10)*10
-        else newVal = math.floor(newVal) end
+        if flag == "walkSpeed" then
+            newVal = math.floor(newVal)
+        elseif flag == "jumpPower" then
+            newVal = math.floor(newVal/10)*10
+        else
+            newVal = math.floor(newVal)
+        end
         newVal = math.clamp(newVal, minVal, maxVal)
         Settings[flag] = newVal
         fill.Size = UDim2.new(pos,0,1,0)
         knob.Position = UDim2.new(pos, -4, 0.5, -4)
         valueLabel.Text = tostring(newVal)..(suffix or "")
-        if flag == "walkSpeed" or flag == "jumpPower" then applyMovement() end
+        if flag == "walkSpeed" or flag == "jumpPower" then
+            applyMovement()
+        end
     end
+
     UserInputService.InputChanged:Connect(function(input)
         if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             updateSlider(input)
         end
     end)
+
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             sliding = false
         end
     end)
+
     return frame
 end
 
@@ -509,6 +536,7 @@ local function CreateColorPicker(parent, label, flag)
         {Name="SoftPink", Color=Color3.fromRGB(255,180,200)},
         {Name="Cyan", Color=Color3.fromRGB(120,200,200)},
     }
+
     local index = 1
     colorBtn.MouseButton1Click:Connect(function()
         index = (index % #presets) + 1
@@ -518,6 +546,7 @@ local function CreateColorPicker(parent, label, flag)
         colorBtn.Text = target.Name
         applyAllFeatures()
     end)
+
     return frame
 end
 
@@ -573,6 +602,7 @@ local function CreateDropdown(parent, label, options, callback)
     list.Visible = false
     list.Parent = frame
     Instance.new("UICorner", list).CornerRadius = UDim.new(0,6)
+
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0,4)
     layout.Parent = list
@@ -581,10 +611,14 @@ local function CreateDropdown(parent, label, options, callback)
         list.Visible = not list.Visible
         if list.Visible then
             for _, child in ipairs(list:GetChildren()) do
-                if child:IsA("TextButton") then child:Destroy() end
+                if child:IsA("TextButton") then
+                    child:Destroy()
+                end
             end
             local opts = options
-            if type(options) == "function" then opts = options() end
+            if type(options) == "function" then
+                opts = options()
+            end
             for _, opt in ipairs(opts) do
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1,-6,0,20)
@@ -641,13 +675,17 @@ CreateToggle(scrollFrame, "Anti-AFK", "antiAfk")
 CreateToggle(scrollFrame, "Spam Sounds", "spamSounds")
 
 CreateSection(scrollFrame, "Follow / Teleport")
+
 local function updatePlayerList()
     local out = {}
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then table.insert(out, plr.Name) end
+        if plr ~= LocalPlayer then
+            table.insert(out, plr.Name)
+        end
     end
     return out
 end
+
 local followDropdown = CreateDropdown(scrollFrame, "Select Player", updatePlayerList, function(selected)
     local target = Players:FindFirstChild(selected)
     if not target then return end
@@ -665,9 +703,12 @@ local followDropdown = CreateDropdown(scrollFrame, "Select Player", updatePlayer
         StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Following ".. selected, Duration = 2})
     end)
 end)
+
 CreateButton(scrollFrame, "🚀 Teleport", function()
     if not followTarget or not followTarget.Character then
-        pcall(function() StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Select a player!", Duration = 2}) end)
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Select a player!", Duration = 2})
+        end)
         return
     end
     local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
@@ -676,12 +717,18 @@ CreateButton(scrollFrame, "🚀 Teleport", function()
         local hrp = myChar:FindFirstChild("HumanoidRootPart")
         if hrp then
             hrp.CFrame = targetHRP.CFrame + Vector3.new(0, 2, 0)
-            pcall(function() StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Teleported!", Duration = 2}) end)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Teleported!", Duration = 2})
+            end)
         end
     end
 end)
+
 CreateButton(scrollFrame, "Stop", function()
-    if followConnection then followConnection:Disconnect(); followConnection = nil end
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
     followTarget = nil
 end)
 
@@ -695,10 +742,8 @@ end)
 function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        pcall(function()
-            char.Humanoid.WalkSpeed = Settings.walkSpeed
-            char.Humanoid.JumpPower = Settings.jumpPower
-        end)
+        char.Humanoid.WalkSpeed = Settings.walkSpeed
+        char.Humanoid.JumpPower = Settings.jumpPower
     end
 end
 
@@ -734,6 +779,7 @@ function updatePlayerWallhack()
 end
 
 local npcHighlighted = {}
+
 function updateNPCWallhack()
     if Settings.npcWallhack then
         for _, obj in ipairs(workspace:GetDescendants()) do
@@ -749,7 +795,9 @@ function updateNPCWallhack()
         end
     else
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Highlight") and obj.Name == "NPCWH" then obj:Destroy() end
+            if obj:IsA("Highlight") and obj.Name == "NPCWH" then
+                obj:Destroy()
+            end
         end
         npcHighlighted = {}
     end
@@ -809,6 +857,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
     elseif input.KeyCode == Enum.KeyCode.LeftShift then
         vel = vel - Vector3.new(0, speed, 0)
     end
+
     flyBodyVelocity.Velocity = vel
 end)
 
@@ -844,9 +893,7 @@ RunService.RenderStepped:Connect(function()
                     local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
                     if dist < 15 then
                         pcall(function()
-                            VirtualInputManager:SendMouseButtonEvent(Enum.UserInputType.MouseButton1, 0, true, game:GetService("RunService").Heartbeat:Wait(), game)
-                            task.wait(0.05)
-                            VirtualInputManager:SendMouseButtonEvent(Enum.UserInputType.MouseButton1, 0, false, game:GetService("RunService").Heartbeat:Wait(), game)
+                            if mouse1click then mouse1click() end
                         end)
                         break
                     end
@@ -869,12 +916,9 @@ RunService.RenderStepped:Connect(function()
             local head = player.Character:FindFirstChild("Head")
             if head then
                 if Settings.visibleCheck and myPos then
-                    local direction = (head.Position - cam.CFrame.Position).Unit
-                    local rayParams = RaycastParams.new()
-                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                    local result = workspace:Raycast(cam.CFrame.Position, direction * 500, rayParams)
-                    if result and not result.Instance:IsDescendantOf(player.Character) then
+                    local ray = Ray.new(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * 500)
+                    local hit = workspace:FindPartOnRay(ray, LocalPlayer.Character, false, true)
+                    if hit and not hit:IsDescendantOf(player.Character) then
                         continue
                     end
                 end
@@ -889,6 +933,7 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end
+
     if closest then
         if Settings.silentAim then
             local screenPos, onScreen = cam:WorldToScreenPoint(closest.Position)
@@ -953,6 +998,7 @@ function resizeTools()
 end
 
 local spamSoundObject = nil
+
 function updateSpamSounds()
     if Settings.spamSounds then
         if not spamSoundObject then
@@ -969,7 +1015,10 @@ function updateSpamSounds()
         end
     else
         if spamSoundObject then
-            pcall(function() spamSoundObject:Stop(); spamSoundObject:Destroy() end)
+            pcall(function()
+                spamSoundObject:Stop()
+                spamSoundObject:Destroy()
+            end)
             spamSoundObject = nil
         end
     end
@@ -987,7 +1036,9 @@ end)
 RunService.Stepped:Connect(function()
     if Settings.noclip and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end
 end)
@@ -1001,12 +1052,15 @@ RunService.Heartbeat:Connect(function()
                     local target = player.Character:FindFirstChild("HumanoidRootPart")
                     if target and (target.Position - myPos.Position).Magnitude < 20 then
                         local hum = player.Character:FindFirstChild("Humanoid")
-                        if hum and hum.Health > 0 then hum.Health = 0 end
+                        if hum and hum.Health > 0 then
+                            hum.Health = 0
+                        end
                     end
                 end
             end
         end
     end
+
     if Settings.autoKillNPC then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Humanoid") and obj.Health > 0 then
@@ -1025,13 +1079,17 @@ UserInputService.InputBegan:Connect(function(input, processed)
         local key = input.KeyCode.Name
         if awaitingKeybind then return end
         if Keybinds.aimbot and key == Keybinds.aimbot then
-            Settings.aimbot = not Settings.aimbot; applyAllFeatures()
+            Settings.aimbot = not Settings.aimbot
+            applyAllFeatures()
         elseif Keybinds.wallhack and key == Keybinds.wallhack then
-            Settings.playerWallhack = not Settings.playerWallhack; applyAllFeatures()
+            Settings.playerWallhack = not Settings.playerWallhack
+            applyAllFeatures()
         elseif Keybinds.fly and key == Keybinds.fly then
-            Settings.fly = not Settings.fly; applyAllFeatures()
+            Settings.fly = not Settings.fly
+            applyAllFeatures()
         elseif Keybinds.triggerbot and key == Keybinds.triggerbot then
-            Settings.triggerbot = not Settings.triggerbot; applyAllFeatures()
+            Settings.triggerbot = not Settings.triggerbot
+            applyAllFeatures()
         end
     end
 end)
@@ -1039,9 +1097,16 @@ end)
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyMovement()
-    if spamSoundObject then pcall(function() spamSoundObject:Stop(); spamSoundObject:Destroy() end); spamSoundObject = nil end
+    if spamSoundObject then
+        pcall(function()
+            spamSoundObject:Stop()
+            spamSoundObject:Destroy()
+        end)
+        spamSoundObject = nil
+    end
     if Settings.spamSounds then updateSpamSounds() end
     if Settings.fly then toggleFly() end
+
     char.ChildAdded:Connect(function(child)
         if child:IsA("Tool") then
             modifyWeapon(child)
@@ -1049,9 +1114,13 @@ LocalPlayer.CharacterAdded:Connect(function(char)
             resizeTools()
         end
     end)
+
     for _, tool in pairs(char:GetChildren()) do
-        if tool:IsA("Tool") then modifyWeapon(tool) end
+        if tool:IsA("Tool") then
+            modifyWeapon(tool)
+        end
     end
+
     task.wait(0.08)
     resizeTools()
 end)
@@ -1080,17 +1149,14 @@ function applyAllFeatures()
     toggleFly()
     if LocalPlayer.Character then
         for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
-            if tool:IsA("Tool") then modifyWeapon(tool) end
+            if tool:IsA("Tool") then
+                modifyWeapon(tool)
+            end
         end
     end
 end
 
-if LocalPlayer.Character then
-    applyAllFeatures()
-else
-    LocalPlayer.CharacterAdded:Wait()
-    applyAllFeatures()
-end
+applyAllFeatures()
 
 pcall(function()
     StarterGui:SetCore("SendNotification", {
@@ -1103,9 +1169,10 @@ end)
 game:BindToClose(function()
     for _, data in pairs(ESPList) do
         for _, obj in pairs({data.box, data.tracer, data.name, data.health}) do
-            if obj then obj:Destroy() end
+            if obj then
+                obj:Destroy()
+            end
         end
     end
     ESPContainer:Destroy()
 end)
-```
