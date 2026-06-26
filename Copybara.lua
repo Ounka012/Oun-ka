@@ -1,4 +1,4 @@
--- [[ Copybara Hub VIP - Lotus Edition (កែលម្អ + អូសប៊ូតុង + Spam Sounds) ]]
+-- [[ Copybara Hub VIP - Lotus Edition (កែសម្រួលចុងក្រោយ) ]]
 -- ចុច 🪷 ដើម្បីបង្ហាញ/លាក់ Menu
 -- អូស 🪷 ដើម្បីផ្លាស់ទីទីតាំងវាលើអេក្រង់
 -- មុខងារ៖ Aimbot, Wallhack, ESP, Movement, Combat, Follow Player, Giant Weapon, Spam Sounds
@@ -55,11 +55,11 @@ Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
 local toggleStroke = Instance.new("UIStroke", floatingToggle)
 toggleStroke.Color = Accent; toggleStroke.Thickness = 1
 
--- ធ្វើឲ្យប៊ូតុង 🪷 អាចអូសបាន (កែ Threshold = 15)
+-- [[[ កែថ្មី ]]] ធ្វើឲ្យប៊ូតុងអូសបាន + ចុចដើម្បីបិទ/បើក Menu
 local dragStartPos = nil
 local dragOffset = Vector2.zero
 local isDragging = false
-local dragThreshold = 15  -- កើនពី 5 ទៅ 15 ដើម្បីងាយស្រួលចុច
+local dragThreshold = 20  -- ចម្ងាយ 20px ឡើងទៅចាត់ទុកជាការអូស
 
 floatingToggle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -71,12 +71,14 @@ end)
 
 floatingToggle.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        if not isDragging then
-            mainFrame.Visible = not mainFrame.Visible
-        end
         dragStartPos = nil
         isDragging = false
     end
+end)
+
+-- ការចុចធម្មតា (បិទ/បើក Menu) ប្រើ MouseButton1Click ដើម្បីភាពជាក់លាក់
+floatingToggle.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
 end)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -671,7 +673,6 @@ end)
 
 -- Combat loops
 RunService.Heartbeat:Connect(function()
-    -- Kill Aura Players
     if Settings.killAuraPlayer then
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if myPos then
@@ -688,7 +689,6 @@ RunService.Heartbeat:Connect(function()
             end
         end
     end
-    -- Auto Kill NPCs
     if Settings.autoKillNPC then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Humanoid") and obj.Health > 0 then
@@ -779,7 +779,7 @@ function resizeTools()
     end
 end
 
--- Spam Sounds (ប្រើ SoundId ត្រឹមត្រូវ)
+-- Spam Sounds
 local spamSoundObject = nil
 local function updateSpamSounds()
     if Settings.spamSounds then
@@ -787,7 +787,7 @@ local function updateSpamSounds()
             if LocalPlayer.Character then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://100620250336897"  -- សំឡេង ding ល្បី
+                spamSoundObject.SoundId = "rbxassetid://82628393182263" -- សំឡេង ding ត្រឹមត្រូវ
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
                 spamSoundObject.Parent = LocalPlayer.Character
