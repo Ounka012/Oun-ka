@@ -1,6 +1,3 @@
--- [[ Copybara Hub VIP - Mobile Edition (ជួសជុលកំហុស Vector2/Fly) ]]
--- មុខងារ៖ Aimbot, Silent Aim, Wallhack, ESP (GUI), Fly, Teleport, Anti-AFK, Keybind
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -10,7 +7,6 @@ local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- ========== ការកំណត់ ==========
 local Settings = {
     aimbot = false, aimbotFOV = 120, silentAim = false, triggerbot = false, visibleCheck = false,
     noRecoil = false, noSpread = false,
@@ -27,11 +23,9 @@ local followConnection = nil
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 
--- ========== Keybind ==========
 local Keybinds = { aimbot = nil, wallhack = nil, fly = nil, triggerbot = nil }
 local awaitingKeybind = nil
 
--- ========== ESP GUI ==========
 local ESPContainer = Instance.new("Folder")
 ESPContainer.Name = "ESP_Folder"
 ESPContainer.Parent = CoreGui
@@ -94,7 +88,6 @@ local function UpdateESP()
                 local pos, onScreen = Camera:WorldToScreenPoint(hrp.Position)
                 local headPos, headOnScreen = Camera:WorldToScreenPoint(head.Position)
                 if onScreen and headOnScreen then
-                    -- បំប្លែងទៅជា Vector2 ដើម្បីកុំឲ្យមានកំហុស
                     local pos2 = Vector2.new(pos.X, pos.Y)
                     local headPos2 = Vector2.new(headPos.X, headPos.Y)
                     local scale = 200 / (Camera.CFrame.Position - hrp.Position).Magnitude
@@ -144,7 +137,6 @@ end
 
 RunService.RenderStepped:Connect(UpdateESP)
 
--- ========== GUI ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHubVIP_Mobile"
 screenGui.ResetOnSpawn = false
@@ -170,7 +162,6 @@ local Accent = Color3.fromRGB(165,95,200)
 local Soft = Color3.fromRGB(220,150,200)
 local Button = Color3.fromRGB(90,60,140)
 
--- Floating Toggle
 local floatingToggle = Instance.new("TextButton")
 floatingToggle.Size = UDim2.new(0, 46, 0, 46)
 floatingToggle.Position = UDim2.new(0.06, 0, 0.24, 0)
@@ -232,7 +223,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Main Frame
 mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 300, 0, 350)
 mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
@@ -247,7 +237,6 @@ pcall(function()
     stroke.Thickness = 1
 end)
 
--- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1,0,0,28)
 titleBar.BackgroundColor3 = Panel
@@ -278,7 +267,6 @@ closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
 closeBtn.MouseButton1Click:Connect(function() if mainFrame then mainFrame.Visible = false end end)
 
--- Scroll Frame
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1,-10,1,-36)
 scrollFrame.Position = UDim2.new(0,5,0,32)
@@ -297,7 +285,6 @@ listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,listLayout.AbsoluteContentSize.Y+8)
 end)
 
--- ========== UI Helpers ==========
 local function CreateSection(parent, name)
     local section = Instance.new("TextLabel")
     section.Text = "── "..name.." ──"
@@ -421,7 +408,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     sliderBar.Position = UDim2.new(0,8,0,22)
     sliderBar.BackgroundColor3 = Color3.fromRGB(60,65,85)
     sliderBar.BorderSizePixel = 0
-    sliderBar.Parent = frame
+    sliderBar.Parent = sliderBar
     Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(1,0)
 
     local range = maxVal - minVal
@@ -620,7 +607,6 @@ local function CreateDropdown(parent, label, options, callback)
     return frame
 end
 
--- ========== BUILD UI ==========
 CreateSection(scrollFrame, "Aimbot")
 CreateToggle(scrollFrame, "Aimbot (Head)", "aimbot", "aimbot")
 CreateToggle(scrollFrame, "Silent Aim", "silentAim")
@@ -705,7 +691,6 @@ CreateButton(scrollFrame, "💾 Apply All", function()
     end)
 end)
 
--- ========== CORE FUNCTIONS ==========
 function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
@@ -767,7 +752,6 @@ function updateNPCWallhack()
     end
 end
 
--- FLY (ជួសជុល)
 function toggleFly()
     local char = LocalPlayer.Character
     if not char then return end
@@ -796,7 +780,6 @@ function toggleFly()
     end
 end
 
--- Fly Controls (ជួសជុល)
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if not Settings.fly or not flyBodyVelocity then return end
@@ -826,7 +809,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
     flyBodyVelocity.Velocity = vel
 end)
 
--- Anti-AFK
 local antiAfkTimer = 0
 RunService.Heartbeat:Connect(function(dt)
     if Settings.antiAfk then
@@ -847,7 +829,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- Triggerbot (ជួសជុល SetMouseLocation)
 RunService.RenderStepped:Connect(function()
     if not Settings.triggerbot then return end
     local mouse = UserInputService:GetMouseLocation()
@@ -870,7 +851,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Aimbot (ជួសជុល SetMouseLocation)
 RunService.RenderStepped:Connect(function()
     if not Settings.aimbot then return end
     local cam = Camera
@@ -913,7 +893,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Weapon Mods
 function modifyWeapon(tool)
     if not tool then return end
     if Settings.noRecoil then
@@ -963,7 +942,6 @@ function resizeTools()
     end
 end
 
--- Spam Sounds
 local spamSoundObject = nil
 function updateSpamSounds()
     if Settings.spamSounds then
@@ -987,7 +965,6 @@ function updateSpamSounds()
     end
 end
 
--- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if Settings.infiniteJump then
         local char = LocalPlayer.Character
@@ -997,7 +974,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Noclip
 RunService.Stepped:Connect(function()
     if Settings.noclip and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -1006,7 +982,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Kill Aura
 RunService.Heartbeat:Connect(function()
     if Settings.killAuraPlayer then
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1034,7 +1009,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Keybinds
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -1052,7 +1026,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 
--- Events
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyMovement()
@@ -1112,7 +1085,6 @@ pcall(function()
     })
 end)
 
--- Cleanup
 game:BindToClose(function()
     for _, data in pairs(ESPList) do
         for _, obj in pairs({data.box, data.tracer, data.name, data.health}) do
