@@ -1,4 +1,4 @@
--- [[ Copybara Hub VIP - Lotus Edition (កែសម្រួលចុងក្រោយ) ]]
+-- [[ Copybara Hub VIP - Lotus Edition (កែសម្រួលពេញលេញ) ]]
 -- ចុច 🪷 ដើម្បីបង្ហាញ/លាក់ Menu
 -- អូស 🪷 ដើម្បីផ្លាស់ទីទីតាំងវាលើអេក្រង់
 -- មុខងារ៖ Aimbot, Wallhack, ESP, Movement, Combat, Follow Player, Giant Weapon, Spam Sounds
@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
 -- ========== ការកំណត់ ==========
@@ -28,11 +29,15 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHubVIP_Lotus"
 screenGui.ResetOnSpawn = false
 
--- ព្យាយាមដាក់ GUI ទៅ CoreGui ឬ PlayerGui
+-- ព្យាយាមដាក់ GUI ទៅ PlayerGui (ប្រើជាចម្បង) ឬ CoreGui
 local function setupGUI()
-    pcall(function() screenGui.Parent = CoreGui end)
-    if not screenGui.Parent then
-        pcall(function() screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 2) end)
+    local success = pcall(function()
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 2)
+    end)
+    if not success then
+        pcall(function()
+            screenGui.Parent = CoreGui
+        end)
     end
     if not screenGui.Parent then
         warn("មិនអាចបង្កើត GUI")
@@ -49,7 +54,7 @@ local Accent = Color3.fromRGB(165,95,200)
 local Soft = Color3.fromRGB(220,150,200)
 local Button = Color3.fromRGB(90,60,140)
 
--- ប៊ូតុងបិទ/បើកអណ្ដែត
+-- ========== ប៊ូតុងអណ្ដែត ==========
 local floatingToggle = Instance.new("TextButton")
 floatingToggle.Size = UDim2.new(0, 46, 0, 46)
 floatingToggle.Position = UDim2.new(0.06, 0, 0.24, 0)
@@ -61,8 +66,12 @@ floatingToggle.TextSize = 20
 floatingToggle.AutoButtonColor = false
 floatingToggle.Parent = screenGui
 Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
-local toggleStroke = Instance.new("UIStroke", floatingToggle)
-toggleStroke.Color = Accent; toggleStroke.Thickness = 1
+-- UIStroke រុំក្នុង pcall ដើម្បីកុំឲ្យមានកំហុស
+pcall(function()
+    local toggleStroke = Instance.new("UIStroke", floatingToggle)
+    toggleStroke.Color = Accent
+    toggleStroke.Thickness = 1
+end)
 
 -- ធ្វើឲ្យប៊ូតុងអូសបាន + ចុចដើម្បីបិទ/បើក Menu
 local dragStartPos = nil
@@ -85,7 +94,6 @@ floatingToggle.InputEnded:Connect(function(input)
     end
 end)
 
--- ការចុចធម្មតា (បិទ/បើក Menu) - ពិនិត្យ mainFrame មុន
 local mainFrame = nil  -- នឹងត្រូវបានកំណត់នៅពេលក្រោយ
 
 floatingToggle.MouseButton1Click:Connect(function()
@@ -115,7 +123,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- ស៊ុមមេ
+-- ========== ស៊ុមមេ ==========
 mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 280, 0, 260)
 mainFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
@@ -124,7 +132,11 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,8)
-Instance.new("UIStroke", mainFrame).Color = Accent; mainFrame.UIStroke.Thickness = 1
+pcall(function()
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Color = Accent
+    stroke.Thickness = 1
+end)
 
 -- របារចំណងជើង
 local titleBar = Instance.new("Frame")
@@ -265,7 +277,8 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
     sliderBar.Parent = frame
     Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(1,0)
 
-    local percent = (Settings[flag] - minVal) / (maxVal - minVal)
+    local range = maxVal - minVal
+    local percent = (range > 0) and ((Settings[flag] - minVal) / range) or 0.5
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(percent,0,1,0)
     fill.BackgroundColor3 = Accent
@@ -275,7 +288,7 @@ local function CreateSlider(parent, label, flag, minVal, maxVal, suffix)
 
     local knob = Instance.new("Frame")
     knob.Size = UDim2.new(0,8,0,8)
-    knob.Position = UDim2.new(percent, -4, 0.5, -4)  -- កែ: percent ជា number
+    knob.Position = UDim2.new(percent, -4, 0.5, -4)
     knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
     knob.BorderSizePixel = 0
     knob.Parent = sliderBar
@@ -503,9 +516,14 @@ local function CreateJSONArea(parent)
     copyBtn.Parent = frame
     Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0,6)
     copyBtn.MouseButton1Click:Connect(function()
-        if setclipboard then setclipboard(jsonBox.Text)
-        elseif toclipboard then toclipboard(jsonBox.Text)
-        else print(jsonBox.Text) end
+        local text = jsonBox.Text
+        if setclipboard then
+            setclipboard(text)
+        elseif toclipboard then
+            toclipboard(text)
+        else
+            print(text)
+        end
     end)
 
     local function update()
@@ -573,14 +591,14 @@ local followDropdown = CreateDropdown(scrollFrame, "Select Player to Follow", up
         end
     end)
     pcall(function()
-        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "កំពុងតាម ".. selected, Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "កំពុងតាម ".. selected, Duration = 2})
     end)
 end)
 CreateButton(scrollFrame, "Stop Following", function()
     if followConnection then followConnection:Disconnect(); followConnection = nil end
     followTarget = nil
     pcall(function()
-        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានបញ្ឈប់ការតាម", Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានបញ្ឈប់ការតាម", Duration = 2})
     end)
 end)
 
@@ -590,7 +608,7 @@ CreateButton(scrollFrame, "💾 Save & Apply", function()
     applyAllFeatures()
     updateJSON()
     pcall(function()
-        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានរក្សាទុកនិងអនុវត្ត", Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានរក្សាទុកនិងអនុវត្ត", Duration = 2})
     end)
 end)
 
@@ -603,22 +621,30 @@ function applyMovement()
     end
 end
 
+-- បង្កើត Highlight ដោយសុវត្ថិភាព
+local function createHighlight(parent, name, fillColor, fillTrans, outlineColor, outlineTrans)
+    local hl = parent:FindFirstChild(name)
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = name
+        hl.Parent = parent
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    end
+    hl.FillColor = fillColor
+    hl.FillTransparency = fillTrans
+    hl.OutlineColor = outlineColor
+    hl.OutlineTransparency = outlineTrans
+    hl.Enabled = true
+    return hl
+end
+
 function updatePlayerWallhack()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             if Settings.playerWallhack then
-                local hl = player.Character:FindFirstChild("PlayerWH")
-                if not hl then
-                    hl = Instance.new("Highlight")
-                    hl.Name = "PlayerWH"
-                    hl.Parent = player.Character
-                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                end
-                hl.FillColor = Settings.wallhackColor
-                hl.FillTransparency = 0.3
-                hl.OutlineColor = Color3.fromRGB(255,255,255)
-                hl.OutlineTransparency = 0.2
-                hl.Enabled = true
+                pcall(function()
+                    createHighlight(player.Character, "PlayerWH", Settings.wallhackColor, 0.3, Color3.fromRGB(255,255,255), 0.2)
+                end)
             else
                 local hl = player.Character:FindFirstChild("PlayerWH")
                 if hl then hl:Destroy() end
@@ -627,30 +653,31 @@ function updatePlayerWallhack()
     end
 end
 
+-- ប្រើតារាងដើម្បីតាមដាន NPCs ដែលបានបន្ថែមរួច ដើម្បីកុំឲ្យស្កេនច្រើន
+local npcHighlighted = {}
 function updateNPCWallhack()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Humanoid") then
-            local parent = obj.Parent
-            if parent and not Players:GetPlayerFromCharacter(parent) then
-                if Settings.npcWallhack then
-                    local hl = parent:FindFirstChild("NPCWH")
-                    if not hl then
-                        hl = Instance.new("Highlight")
-                        hl.Name = "NPCWH"
-                        hl.Parent = parent
-                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    if Settings.npcWallhack then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Humanoid") then
+                local parent = obj.Parent
+                if parent and not Players:GetPlayerFromCharacter(parent) then
+                    if not npcHighlighted[parent] then
+                        pcall(function()
+                            createHighlight(parent, "NPCWH", Color3.fromRGB(255,255,150), 0.3, Color3.fromRGB(255,255,255), 0.2)
+                            npcHighlighted[parent] = true
+                        end)
                     end
-                    hl.FillColor = Color3.fromRGB(255,255,150)
-                    hl.FillTransparency = 0.3
-                    hl.OutlineColor = Color3.fromRGB(255,255,255)
-                    hl.OutlineTransparency = 0.2
-                    hl.Enabled = true
-                else
-                    local hl = parent:FindFirstChild("NPCWH")
-                    if hl then hl:Destroy() end
                 end
             end
         end
+    else
+        -- លុប Highlight ទាំងអស់
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Highlight") and obj.Name == "NPCWH" then
+                obj:Destroy()
+            end
+        end
+        npcHighlighted = {}
     end
 end
 
@@ -749,7 +776,7 @@ function modifyWeapon(tool)
         for _, prop in pairs({"Recoil", "RecoilAmount", "CameraRecoil"}) do
             local p = tool:FindFirstChild(prop)
             if p and p.ClassName ~= "RemoteEvent" then
-                p.Value = 0
+                pcall(function() p.Value = 0 end)
             end
         end
     end
@@ -757,13 +784,13 @@ function modifyWeapon(tool)
         for _, prop in pairs({"Spread", "MaxSpread", "MinSpread"}) do
             local p = tool:FindFirstChild(prop)
             if p and p.ClassName ~= "RemoteEvent" then
-                p.Value = 0
+                pcall(function() p.Value = 0 end)
             end
         end
     end
 end
 
--- Giant tool
+-- Giant tool (ហៅរាល់ពេលដែលប្ដូរការកំណត់)
 function resizeTools()
     local char = LocalPlayer.Character
     if not char then return end
@@ -793,7 +820,7 @@ function resizeTools()
     end
 end
 
--- Spam Sounds
+-- Spam Sounds (ប្រើ SoundId ដែលមានស្រាប់)
 local spamSoundObject = nil
 local function updateSpamSounds()
     if Settings.spamSounds then
@@ -802,17 +829,19 @@ local function updateSpamSounds()
             if char then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://82628393182263"
+                spamSoundObject.SoundId = "rbxassetid://82628393182263" -- បើមិនដំណើរការ សូមប្ដូរ ID
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
                 spamSoundObject.Parent = char
-                spamSoundObject:Play()
+                pcall(function() spamSoundObject:Play() end)
             end
         end
     else
         if spamSoundObject then
-            spamSoundObject:Stop()
-            spamSoundObject:Destroy()
+            pcall(function()
+                spamSoundObject:Stop()
+                spamSoundObject:Destroy()
+            end)
             spamSoundObject = nil
         end
     end
@@ -823,8 +852,10 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyMovement()
     if spamSoundObject then
-        spamSoundObject:Stop()
-        spamSoundObject:Destroy()
+        pcall(function()
+            spamSoundObject:Stop()
+            spamSoundObject:Destroy()
+        end)
         spamSoundObject = nil
     end
     if Settings.spamSounds then
@@ -879,7 +910,7 @@ applyAllFeatures()
 
 -- ការជូនដំណឹង
 pcall(function()
-    CoreGui:SetCore("SendNotification", {
+    StarterGui:SetCore("SendNotification", {
         Title = "🪷 Copybara VIP",
         Text = "Loaded — Lotus mode active. Tap 🪷 to toggle, drag to move.",
         Duration = 3
