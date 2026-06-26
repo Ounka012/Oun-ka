@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -90,7 +91,6 @@ local function UpdateESP()
                 local headPos, headOnScreen = Camera:WorldToScreenPoint(head.Position)
                 if onScreen and headOnScreen then
                     local pos2 = Vector2.new(pos.X, pos.Y)
-                    local headPos2 = Vector2.new(headPos.X, headPos.Y)
                     local scale = 200 / (Camera.CFrame.Position - hrp.Position).Magnitude
                     local boxSize = Vector2.new(scale * 1.2, scale * 2)
 
@@ -695,8 +695,10 @@ end)
 function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = Settings.walkSpeed
-        char.Humanoid.JumpPower = Settings.jumpPower
+        pcall(function()
+            char.Humanoid.WalkSpeed = Settings.walkSpeed
+            char.Humanoid.JumpPower = Settings.jumpPower
+        end)
     end
 end
 
@@ -842,7 +844,9 @@ RunService.RenderStepped:Connect(function()
                     local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
                     if dist < 15 then
                         pcall(function()
-                            if mouse1click then mouse1click() end
+                            VirtualInputManager:SendMouseButtonEvent(Enum.UserInputType.MouseButton1, 0, true, game:GetService("RunService").Heartbeat:Wait(), game)
+                            task.wait(0.05)
+                            VirtualInputManager:SendMouseButtonEvent(Enum.UserInputType.MouseButton1, 0, false, game:GetService("RunService").Heartbeat:Wait(), game)
                         end)
                         break
                     end
@@ -865,9 +869,14 @@ RunService.RenderStepped:Connect(function()
             local head = player.Character:FindFirstChild("Head")
             if head then
                 if Settings.visibleCheck and myPos then
-                    local ray = Ray.new(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * 500)
-                    local hit = workspace:FindPartOnRay(ray, LocalPlayer.Character, false, true)
-                    if hit and not hit:IsDescendantOf(player.Character) then continue end
+                    local direction = (head.Position - cam.CFrame.Position).Unit
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                    local result = workspace:Raycast(cam.CFrame.Position, direction * 500, rayParams)
+                    if result and not result.Instance:IsDescendantOf(player.Character) then
+                        continue
+                    end
                 end
                 local pos, onScreen = cam:WorldToScreenPoint(head.Position)
                 if onScreen then
@@ -1076,7 +1085,12 @@ function applyAllFeatures()
     end
 end
 
-applyAllFeatures()
+if LocalPlayer.Character then
+    applyAllFeatures()
+else
+    LocalPlayer.CharacterAdded:Wait()
+    applyAllFeatures()
+end
 
 pcall(function()
     StarterGui:SetCore("SendNotification", {
