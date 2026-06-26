@@ -18,7 +18,7 @@ local Settings = {
     wallhackColor = Color3.fromRGB(220,150,200), infiniteJump = false, noclip = false,
     walkSpeed = 16, jumpPower = 50, killAuraPlayer = false, autoKillNPC = false,
     giantTool = false,
-    spamSounds = false, -- ថ្មី
+    spamSounds = false,
 }
 local followTarget = nil
 local followConnection = nil
@@ -55,11 +55,11 @@ Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
 local toggleStroke = Instance.new("UIStroke", floatingToggle)
 toggleStroke.Color = Accent; toggleStroke.Thickness = 1
 
--- ធ្វើឲ្យប៊ូតុង 🪷 អាចអូសបាន
+-- ធ្វើឲ្យប៊ូតុង 🪷 អាចអូសបាន (កែ Threshold = 15)
 local dragStartPos = nil
 local dragOffset = Vector2.zero
 local isDragging = false
-local dragThreshold = 5
+local dragThreshold = 15  -- កើនពី 5 ទៅ 15 ដើម្បីងាយស្រួលចុច
 
 floatingToggle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -531,7 +531,6 @@ CreateSection(scrollFrame, "Combat")
 CreateToggle(scrollFrame, "Kill Aura (Players)", "killAuraPlayer")
 CreateToggle(scrollFrame, "Auto Kill NPCs", "autoKillNPC")
 
--- ថ្មី៖ Misc Section សម្រាប់ Spam Sounds
 CreateSection(scrollFrame, "Misc")
 CreateToggle(scrollFrame, "Spam Sounds (រំខាន)", "spamSounds")
 
@@ -780,16 +779,15 @@ function resizeTools()
     end
 end
 
--- ========== [ថ្មី] Spam Sounds ==========
+-- Spam Sounds (ប្រើ SoundId ត្រឹមត្រូវ)
 local spamSoundObject = nil
 local function updateSpamSounds()
     if Settings.spamSounds then
         if not spamSoundObject then
-            -- បង្កើត Sound ថ្មីភ្ជាប់ទៅតួអង្គ
             if LocalPlayer.Character then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://126498463169239" -- សំឡេង ding ដ៏ល្បី
+                spamSoundObject.SoundId = "rbxassetid://165065112"  -- សំឡេង ding ល្បី
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
                 spamSoundObject.Parent = LocalPlayer.Character
@@ -809,13 +807,11 @@ end
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyMovement()
-    -- បើមាន spamSoundObject ចាស់ លុបចេញ
     if spamSoundObject then
         spamSoundObject:Stop()
         spamSoundObject:Destroy()
         spamSoundObject = nil
     end
-    -- បើ spamSounds បើក បង្កើតថ្មីជាមួយតួអង្គថ្មី
     if Settings.spamSounds then
         updateSpamSounds()
     end
@@ -854,7 +850,7 @@ function applyAllFeatures()
     updatePlayerWallhack()
     updateNPCWallhack()
     updatePlayerESP()
-    updateSpamSounds() -- ថ្មី
+    updateSpamSounds()
     resizeTools()
     if LocalPlayer.Character then
         for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
