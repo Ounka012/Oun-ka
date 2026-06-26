@@ -789,7 +789,7 @@ local function updateSpamSounds()
             if LocalPlayer.Character then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://165065112" -- សំឡេង ding ដ៏ល្បី
+                spamSoundObject.SoundId = "rbxassetid://126498463169239" -- សំឡេង ding ដ៏ល្បី
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
                 spamSoundObject.Parent = LocalPlayer.Character
