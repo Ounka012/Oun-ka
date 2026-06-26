@@ -1,7 +1,7 @@
--- [[ Copybara Hub VIP - Lotus Edition (កែសម្រួលពេញលេញ) ]]
+-- [[ Copybara Hub VIP - Lotus Edition (មុខងារពេញលេញ) ]]
 -- ចុច 🪷 ដើម្បីបង្ហាញ/លាក់ Menu
--- អូស 🪷 ដើម្បីផ្លាស់ទីទីតាំងវាលើអេក្រង់
--- មុខងារ៖ Aimbot, Wallhack, ESP, Movement, Combat, Follow Player, Giant Weapon, Spam Sounds
+-- អូស 🪷 ដើម្បីផ្លាស់ទីទីតាំង
+-- មុខងារ៖ Aimbot, Silent Aim, Triggerbot, Wallhack, ESP (Box/Line/Name/Health), Fly, Teleport, Keybind, Anti-AFK
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -11,50 +11,73 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- ========== ការកំណត់ ==========
 local Settings = {
-    aimbot = false, aimbotFOV = 120, noRecoil = false, noSpread = false,
+    -- Aimbot
+    aimbot = false, aimbotFOV = 120, silentAim = false, triggerbot = false, visibleCheck = false,
+    noRecoil = false, noSpread = false,
+    -- Visuals
     playerWallhack = false, npcWallhack = false, playerESP = false,
-    wallhackColor = Color3.fromRGB(220,150,200), infiniteJump = false, noclip = false,
-    walkSpeed = 16, jumpPower = 50, killAuraPlayer = false, autoKillNPC = false,
-    giantTool = false,
-    spamSounds = false,
+    wallhackColor = Color3.fromRGB(220,150,200),
+    boxESP = false, tracers = false, nameESP = false, healthBar = false, fovCircle = false,
+    -- Movement
+    infiniteJump = false, noclip = false, fly = false,
+    walkSpeed = 16, jumpPower = 50,
+    -- Combat
+    killAuraPlayer = false, autoKillNPC = false, giantTool = false,
+    antiAfk = false, spamSounds = false,
+    -- Teleport
+    teleportToTarget = false,
 }
 local followTarget = nil
 local followConnection = nil
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
 
--- ========== បង្កើត GUI ==========
+-- ========== Keybind System ==========
+local Keybinds = {
+    aimbot = nil, wallhack = nil, fly = nil, triggerbot = nil
+}
+local awaitingKeybind = nil
+
+-- ========== Drawing (ESP) ==========
+local ESPObjects = {}
+local function ClearESP()
+    for _, v in pairs(ESPObjects) do
+        pcall(function() v:Remove() end)
+    end
+    ESPObjects = {}
+end
+
+-- ========== GUI ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHubVIP_Lotus"
 screenGui.ResetOnSpawn = false
 
--- ព្យាយាមដាក់ GUI ទៅ PlayerGui (ប្រើជាចម្បង) ឬ CoreGui
 local function setupGUI()
     local success = pcall(function()
         screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 2)
     end)
     if not success then
-        pcall(function()
-            screenGui.Parent = CoreGui
-        end)
+        pcall(function() screenGui.Parent = CoreGui end)
     end
     if not screenGui.Parent then
-        warn("មិនអាចបង្កើត GUI")
+        warn("GUI creation failed")
         return false
     end
     return true
 end
 if not setupGUI() then return end
 
--- ពណ៌ចម្រុះ
 local BG = Color3.fromRGB(18,16,24)
 local Panel = Color3.fromRGB(28,24,36)
 local Accent = Color3.fromRGB(165,95,200)
 local Soft = Color3.fromRGB(220,150,200)
 local Button = Color3.fromRGB(90,60,140)
 
--- ========== ប៊ូតុងអណ្ដែត ==========
+-- Floating Toggle
 local floatingToggle = Instance.new("TextButton")
 floatingToggle.Size = UDim2.new(0, 46, 0, 46)
 floatingToggle.Position = UDim2.new(0.06, 0, 0.24, 0)
@@ -66,14 +89,12 @@ floatingToggle.TextSize = 20
 floatingToggle.AutoButtonColor = false
 floatingToggle.Parent = screenGui
 Instance.new("UICorner", floatingToggle).CornerRadius = UDim.new(1,0)
--- UIStroke រុំក្នុង pcall ដើម្បីកុំឲ្យមានកំហុស
 pcall(function()
-    local toggleStroke = Instance.new("UIStroke", floatingToggle)
-    toggleStroke.Color = Accent
-    toggleStroke.Thickness = 1
+    local stroke = Instance.new("UIStroke", floatingToggle)
+    stroke.Color = Accent
+    stroke.Thickness = 1
 end)
 
--- ធ្វើឲ្យប៊ូតុងអូសបាន + ចុចដើម្បីបិទ/បើក Menu
 local dragStartPos = nil
 local dragOffset = Vector2.zero
 local isDragging = false
@@ -94,25 +115,20 @@ floatingToggle.InputEnded:Connect(function(input)
     end
 end)
 
-local mainFrame = nil  -- នឹងត្រូវបានកំណត់នៅពេលក្រោយ
-
+local mainFrame = nil
 floatingToggle.MouseButton1Click:Connect(function()
-    if mainFrame then
-        mainFrame.Visible = not mainFrame.Visible
-    end
+    if mainFrame then mainFrame.Visible = not mainFrame.Visible end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragStartPos then
         if not isDragging then
             local delta = (input.Position - dragStartPos).Magnitude
-            if delta > dragThreshold then
-                isDragging = true
-            end
+            if delta > dragThreshold then isDragging = true end
         end
         if isDragging then
             local newPos = input.Position + dragOffset
-            local screenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+            local screenSize = Camera and Camera.ViewportSize or Vector2.new(1920, 1080)
             local btnSize = floatingToggle.AbsoluteSize
             newPos = Vector2.new(
                 math.clamp(newPos.X, 0, screenSize.X - btnSize.X),
@@ -123,10 +139,10 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- ========== ស៊ុមមេ ==========
+-- Main Frame
 mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 280, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -130)
+mainFrame.Size = UDim2.new(0, 300, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
 mainFrame.BackgroundColor3 = BG
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
@@ -138,7 +154,7 @@ pcall(function()
     stroke.Thickness = 1
 end)
 
--- របារចំណងជើង
+-- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1,0,0,28)
 titleBar.BackgroundColor3 = Panel
@@ -148,7 +164,7 @@ Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,8)
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1,-48,1,0)
 titleLabel.Position = UDim2.new(0,10,0,0)
-titleLabel.Text = "🪷 Copybara VIP"
+titleLabel.Text = "🪷 Copybara VIP (Full)"
 titleLabel.TextColor3 = Soft
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
@@ -169,7 +185,7 @@ closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
 closeBtn.MouseButton1Click:Connect(function() if mainFrame then mainFrame.Visible = false end end)
 
--- ស៊ុមរំកិល
+-- Scroll Frame
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1,-10,1,-36)
 scrollFrame.Position = UDim2.new(0,5,0,32)
@@ -188,7 +204,7 @@ listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,listLayout.AbsoluteContentSize.Y+8)
 end)
 
--- ========== ជំនួយការបង្កើត UI ==========
+-- ========== UI Helpers ==========
 local function CreateSection(parent, name)
     local section = Instance.new("TextLabel")
     section.Text = "── "..name.." ──"
@@ -201,7 +217,7 @@ local function CreateSection(parent, name)
     section.Parent = parent
 end
 
-local function CreateToggle(parent, label, flag)
+local function CreateToggle(parent, label, flag, keybindFlag)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1,-10,0,24)
     frame.BackgroundColor3 = Panel
@@ -211,7 +227,7 @@ local function CreateToggle(parent, label, flag)
 
     local text = Instance.new("TextLabel")
     text.Text = label
-    text.Size = UDim2.new(1,-60,1,0)
+    text.Size = UDim2.new(1,-100,1,0)
     text.Position = UDim2.new(0,8,0,0)
     text.BackgroundTransparency = 1
     text.TextColor3 = Color3.fromRGB(230,230,240)
@@ -247,6 +263,46 @@ local function CreateToggle(parent, label, flag)
         TweenService:Create(knob, TweenInfo.new(0.12), {Position = Settings[flag] and UDim2.new(1,-16,0.5,-5) or UDim2.new(0,4,0.5,-5)}):Play()
         applyAllFeatures()
     end)
+
+    -- Keybind Button (small)
+    if keybindFlag then
+        local keyBtn = Instance.new("TextButton")
+        keyBtn.Size = UDim2.new(0,40,0,16)
+        keyBtn.Position = UDim2.new(1,-80,0.5,-8)
+        keyBtn.Text = "Bind"
+        keyBtn.BackgroundColor3 = Color3.fromRGB(60,50,80)
+        keyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+        keyBtn.Font = Enum.Font.GothamBold
+        keyBtn.TextSize = 9
+        keyBtn.BorderSizePixel = 0
+        keyBtn.Parent = frame
+        Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0,4)
+        keyBtn.MouseButton1Click:Connect(function()
+            awaitingKeybind = keybindFlag
+            keyBtn.Text = "..."
+            task.wait(0.1)
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input, processed)
+                if processed then return end
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    local key = input.KeyCode.Name
+                    Keybinds[keybindFlag] = key
+                    keyBtn.Text = key
+                    awaitingKeybind = nil
+                    connection:Disconnect()
+                    pcall(function()
+                        StarterGui:SetCore("SendNotification", {Title = "Keybind", Text = key .. " bound to " .. keybindFlag, Duration = 1})
+                    end)
+                end
+            end)
+            task.wait(5)
+            if awaitingKeybind == keybindFlag then
+                awaitingKeybind = nil
+                keyBtn.Text = "Bind"
+                if connection then connection:Disconnect() end
+            end
+        end)
+    end
     return frame
 end
 
@@ -517,13 +573,9 @@ local function CreateJSONArea(parent)
     Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0,6)
     copyBtn.MouseButton1Click:Connect(function()
         local text = jsonBox.Text
-        if setclipboard then
-            setclipboard(text)
-        elseif toclipboard then
-            toclipboard(text)
-        else
-            print(text)
-        end
+        if setclipboard then setclipboard(text)
+        elseif toclipboard then toclipboard(text)
+        else print(text) end
     end)
 
     local function update()
@@ -541,35 +593,43 @@ local function CreateJSONArea(parent)
     return update
 end
 
--- ========== សាងសង់ UI ==========
+-- ========== BUILD UI ==========
 CreateSection(scrollFrame, "Aimbot & Weapons")
-CreateToggle(scrollFrame, "Aimbot (Head)", "aimbot")
+CreateToggle(scrollFrame, "Aimbot (Head)", "aimbot", "aimbot")
+CreateToggle(scrollFrame, "Silent Aim", "silentAim")
+CreateToggle(scrollFrame, "Triggerbot", "triggerbot", "triggerbot")
+CreateToggle(scrollFrame, "Visible Check", "visibleCheck")
 CreateSlider(scrollFrame, "Aimbot FOV", "aimbotFOV", 30, 300, "°")
 CreateToggle(scrollFrame, "No Recoil", "noRecoil")
 CreateToggle(scrollFrame, "No Spread", "noSpread")
-CreateToggle(scrollFrame, "Giant Weapon (យក្ស)", "giantTool")
+CreateToggle(scrollFrame, "Giant Weapon", "giantTool")
 
-CreateSection(scrollFrame, "Visual & Wallhack")
-CreateToggle(scrollFrame, "Player Wallhack", "playerWallhack")
+CreateSection(scrollFrame, "Visual & ESP")
+CreateToggle(scrollFrame, "Player Wallhack", "playerWallhack", "wallhack")
 CreateToggle(scrollFrame, "NPC Wallhack", "npcWallhack")
 CreateColorPicker(scrollFrame, "Wallhack Color", "wallhackColor")
 CreateToggle(scrollFrame, "Player ESP (Transparent)", "playerESP")
+CreateToggle(scrollFrame, "Box ESP", "boxESP")
+CreateToggle(scrollFrame, "Tracers", "tracers")
+CreateToggle(scrollFrame, "Name / Health ESP", "nameESP")
+CreateToggle(scrollFrame, "Health Bar", "healthBar")
+CreateToggle(scrollFrame, "FOV Circle", "fovCircle")
 
 CreateSection(scrollFrame, "Movement")
 CreateToggle(scrollFrame, "Infinite Jump", "infiniteJump")
 CreateToggle(scrollFrame, "Noclip", "noclip")
+CreateToggle(scrollFrame, "Fly Mode", "fly", "fly")
 CreateSlider(scrollFrame, "Walk Speed", "walkSpeed", 16, 200, "")
 CreateSlider(scrollFrame, "Jump Power", "jumpPower", 50, 500, "")
 
-CreateSection(scrollFrame, "Combat")
+CreateSection(scrollFrame, "Combat & Misc")
 CreateToggle(scrollFrame, "Kill Aura (Players)", "killAuraPlayer")
 CreateToggle(scrollFrame, "Auto Kill NPCs", "autoKillNPC")
+CreateToggle(scrollFrame, "Anti-AFK", "antiAfk")
+CreateToggle(scrollFrame, "Spam Sounds", "spamSounds")
 
-CreateSection(scrollFrame, "Misc")
-CreateToggle(scrollFrame, "Spam Sounds (រំខាន)", "spamSounds")
-
--- FOLLOW SYSTEM
-CreateSection(scrollFrame, "Follow System")
+-- Follow & Teleport
+CreateSection(scrollFrame, "Follow / Teleport")
 local function updatePlayerList()
     local out = {}
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -577,7 +637,7 @@ local function updatePlayerList()
     end
     return out
 end
-local followDropdown = CreateDropdown(scrollFrame, "Select Player to Follow", updatePlayerList, function(selected)
+local followDropdown = CreateDropdown(scrollFrame, "Select Player", updatePlayerList, function(selected)
     local target = Players:FindFirstChild(selected)
     if not target then return end
     if followConnection then followConnection:Disconnect() end
@@ -591,28 +651,43 @@ local followDropdown = CreateDropdown(scrollFrame, "Select Player to Follow", up
         end
     end)
     pcall(function()
-        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "កំពុងតាម ".. selected, Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Following ".. selected, Duration = 2})
     end)
 end)
-CreateButton(scrollFrame, "Stop Following", function()
+CreateButton(scrollFrame, "🚀 Teleport to Selected", function()
+    if not followTarget or not followTarget.Character then
+        pcall(function() StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Select a player first!", Duration = 2}) end)
+        return
+    end
+    local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
+    local myChar = LocalPlayer.Character
+    if targetHRP and myChar then
+        local hrp = myChar:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = targetHRP.CFrame + Vector3.new(0, 2, 0)
+            pcall(function() StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Teleported to " .. followTarget.Name, Duration = 2}) end)
+        end
+    end
+end)
+CreateButton(scrollFrame, "Stop Following / Teleport", function()
     if followConnection then followConnection:Disconnect(); followConnection = nil end
     followTarget = nil
     pcall(function()
-        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានបញ្ឈប់ការតាម", Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Stopped", Duration = 2})
     end)
 end)
 
--- Config Section
+-- Config
 local updateJSON = CreateJSONArea(scrollFrame)
 CreateButton(scrollFrame, "💾 Save & Apply", function()
     applyAllFeatures()
     updateJSON()
     pcall(function()
-        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "បានរក្សាទុកនិងអនុវត្ត", Duration = 2})
+        StarterGui:SetCore("SendNotification", {Title = "Copybara", Text = "Saved & Applied", Duration = 2})
     end)
 end)
 
--- ========== មុខងារទាំងអស់ ==========
+-- ========== CORE FUNCTIONS ==========
 function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
@@ -621,7 +696,7 @@ function applyMovement()
     end
 end
 
--- បង្កើត Highlight ដោយសុវត្ថិភាព
+-- Highlight Helper
 local function createHighlight(parent, name, fillColor, fillTrans, outlineColor, outlineTrans)
     local hl = parent:FindFirstChild(name)
     if not hl then
@@ -653,29 +728,23 @@ function updatePlayerWallhack()
     end
 end
 
--- ប្រើតារាងដើម្បីតាមដាន NPCs ដែលបានបន្ថែមរួច ដើម្បីកុំឲ្យស្កេនច្រើន
 local npcHighlighted = {}
 function updateNPCWallhack()
     if Settings.npcWallhack then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Humanoid") then
                 local parent = obj.Parent
-                if parent and not Players:GetPlayerFromCharacter(parent) then
-                    if not npcHighlighted[parent] then
-                        pcall(function()
-                            createHighlight(parent, "NPCWH", Color3.fromRGB(255,255,150), 0.3, Color3.fromRGB(255,255,255), 0.2)
-                            npcHighlighted[parent] = true
-                        end)
-                    end
+                if parent and not Players:GetPlayerFromCharacter(parent) and not npcHighlighted[parent] then
+                    pcall(function()
+                        createHighlight(parent, "NPCWH", Color3.fromRGB(255,255,150), 0.3, Color3.fromRGB(255,255,255), 0.2)
+                        npcHighlighted[parent] = true
+                    end)
                 end
             end
         end
     else
-        -- លុប Highlight ទាំងអស់
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Highlight") and obj.Name == "NPCWH" then
-                obj:Destroy()
-            end
+            if obj:IsA("Highlight") and obj.Name == "NPCWH" then obj:Destroy() end
         end
         npcHighlighted = {}
     end
@@ -693,67 +762,234 @@ function updatePlayerESP()
     end
 end
 
--- Infinite Jump
-UserInputService.JumpRequest:Connect(function()
-    if Settings.infiniteJump then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+-- ========== FLY SYSTEM ==========
+function toggleFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if Settings.fly then
+        if not flyBodyVelocity then
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = hrp
+
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyGyro.CFrame = hrp.CFrame
+            flyBodyGyro.Parent = hrp
         end
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = true end
+    else
+        if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
+        if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
+end
+
+-- Fly Controls (WASD/Space/Shift)
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if not Settings.fly then return end
+    if not flyBodyVelocity then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local speed = 50
+    local vel = flyBodyVelocity.Velocity
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+
+    if input.KeyCode == Enum.KeyCode.W then
+        vel = vel + cam.CFrame.LookVector * speed
+    elseif input.KeyCode == Enum.KeyCode.S then
+        vel = vel - cam.CFrame.LookVector * speed
+    elseif input.KeyCode == Enum.KeyCode.A then
+        vel = vel - cam.CFrame.RightVector * speed
+    elseif input.KeyCode == Enum.KeyCode.D then
+        vel = vel + cam.CFrame.RightVector * speed
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        vel = vel + Vector3.new(0, speed, 0)
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        vel = vel - Vector3.new(0, speed, 0)
+    end
+    flyBodyVelocity.Velocity = vel
+end)
+
+-- ========== ANTI-AFK ==========
+local antiAfkTimer = 0
+RunService.Heartbeat:Connect(function(dt)
+    if Settings.antiAfk then
+        antiAfkTimer = antiAfkTimer + dt
+        if antiAfkTimer > 60 then -- Every 60 seconds
+            antiAfkTimer = 0
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:MoveTo(char.HumanoidRootPart.Position + Vector3.new(math.random(-1,1), 0, math.random(-1,1)) * 2)
+            end
+            -- Simulate mouse movement
+            local mouse = UserInputService:GetMouseLocation()
+            UserInputService:SetMouseLocation(mouse.X + math.random(-5,5), mouse.Y + math.random(-5,5))
+        end
+    else
+        antiAfkTimer = 0
     end
 end)
 
--- Noclip
-RunService.Stepped:Connect(function()
-    if Settings.noclip and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
-end)
+-- ========== ESP DRAWING (Box, Tracers, Name, Health) ==========
+function updateESP()
+    ClearESP()
+    if not (Settings.boxESP or Settings.tracers or Settings.nameESP or Settings.healthBar or Settings.fovCircle) then return end
 
--- Combat loops
-RunService.Heartbeat:Connect(function()
-    if Settings.killAuraPlayer then
-        local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if myPos then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local target = player.Character:FindFirstChild("HumanoidRootPart")
-                    if target and (target.Position - myPos.Position).Magnitude < 20 then
-                        local hum = player.Character:FindFirstChild("Humanoid")
-                        if hum and hum.Health > 0 then
-                            hum.Health = 0
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local viewport = cam.ViewportSize
+    local localPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+
+    -- FOV Circle
+    if Settings.fovCircle and Settings.aimbot then
+        local circle = Drawing.new("Circle")
+        circle.Radius = Settings.aimbotFOV
+        circle.Thickness = 1
+        circle.Color = Accent
+        circle.Transparency = 0.8
+        circle.Visible = true
+        circle.Position = Vector2.new(viewport.X/2, viewport.Y/2)
+        table.insert(ESPObjects, circle)
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local char = player.Character
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local head = char:FindFirstChild("Head")
+            local hum = char:FindFirstChild("Humanoid")
+            if hrp and head and hum then
+                local pos, onScreen = cam:WorldToScreenPoint(hrp.Position)
+                local headPos, headOnScreen = cam:WorldToScreenPoint(head.Position)
+                if onScreen and headOnScreen then
+                    local dist = (hrp.Position - (localPos or Vector3.zero)).Magnitude
+                    local size = 200 / dist -- Simple size scaling
+
+                    -- Box ESP
+                    if Settings.boxESP then
+                        local box = Drawing.new("Quad")
+                        box.PointA = Vector2.new(pos.X - size, pos.Y - size)
+                        box.PointB = Vector2.new(pos.X + size, pos.Y - size)
+                        box.PointC = Vector2.new(pos.X + size, pos.Y + size)
+                        box.PointD = Vector2.new(pos.X - size, pos.Y + size)
+                        box.Color = Accent
+                        box.Thickness = 1.5
+                        box.Transparency = 0.7
+                        box.Visible = true
+                        table.insert(ESPObjects, box)
+                    end
+
+                    -- Tracers
+                    if Settings.tracers then
+                        local tracer = Drawing.new("Line")
+                        tracer.From = Vector2.new(viewport.X/2, viewport.Y)
+                        tracer.To = Vector2.new(pos.X, pos.Y)
+                        tracer.Color = Color3.fromRGB(255,255,255)
+                        tracer.Thickness = 1
+                        tracer.Transparency = 0.6
+                        tracer.Visible = true
+                        table.insert(ESPObjects, tracer)
+                    end
+
+                    -- Name & Health
+                    if Settings.nameESP or Settings.healthBar then
+                        local textY = headPos.Y - 20 - (Settings.healthBar and 20 or 0)
+                        if Settings.nameESP then
+                            local nameText = Drawing.new("Text")
+                            nameText.Text = player.Name
+                            nameText.Color = Color3.fromRGB(255,255,255)
+                            nameText.Size = 14
+                            nameText.Center = true
+                            nameText.Position = Vector2.new(pos.X, textY)
+                            nameText.Visible = true
+                            nameText.Outline = true
+                            table.insert(ESPObjects, nameText)
+                            textY = textY - 16
+                        end
+                        if Settings.healthBar then
+                            local healthPercent = hum.Health / hum.MaxHealth
+                            local healthText = Drawing.new("Text")
+                            healthText.Text = math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)
+                            healthText.Color = (healthPercent > 0.5) and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+                            healthText.Size = 12
+                            healthText.Center = true
+                            healthText.Position = Vector2.new(pos.X, textY)
+                            healthText.Visible = true
+                            healthText.Outline = true
+                            table.insert(ESPObjects, healthText)
                         end
                     end
                 end
             end
         end
     end
-    if Settings.autoKillNPC then
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Humanoid") and obj.Health > 0 then
-                local parent = obj.Parent
-                if parent and not Players:GetPlayerFromCharacter(parent) then
-                    obj.Health = 0
-                end
-            end
-        end
-    end
-end)
+end
 
--- Aimbot (បានកែបន្ថែមការត្រួតពិនិត្យ)
+-- ========== TRIGGERBOT ==========
 RunService.RenderStepped:Connect(function()
-    if not Settings.aimbot then return end
-    local camera = workspace.CurrentCamera
-    if not camera then return end
+    if not Settings.triggerbot then return end
     local mouse = UserInputService:GetMouseLocation()
-    local closest, shortest = nil, Settings.aimbotFOV
+    local target = nil
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local head = player.Character:FindFirstChild("Head")
             if head then
-                local pos, onScreen = camera:WorldToScreenPoint(head.Position)
+                local pos, onScreen = Camera:WorldToScreenPoint(head.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                    if dist < 15 then -- Crosshair radius
+                        target = player
+                        break
+                    end
+                end
+            end
+        end
+    end
+    if target then
+        -- Simulate mouse click (works in most exploits)
+        if mouse1click then
+            mouse1click()
+        elseif UserInputService:GetMouseLocation then
+            -- Alternative: Use key simulation
+            UserInputService:SetMouseLocation(mouse.X, mouse.Y)
+        end
+    end
+end)
+
+-- ========== AIMBOT (ជាមួយ Silent Aim & Visible Check) ==========
+RunService.RenderStepped:Connect(function()
+    if not Settings.aimbot then return end
+    local cam = Camera
+    if not cam then return end
+    local mouse = UserInputService:GetMouseLocation()
+    local closest, shortest = nil, Settings.aimbotFOV
+    local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                -- Visible Check
+                if Settings.visibleCheck and myPos then
+                    local ray = Ray.new(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * 500)
+                    local hit, pos = workspace:FindPartOnRay(ray, LocalPlayer.Character, false, true)
+                    if hit and not hit:IsDescendantOf(player.Character) then
+                        continue -- Skip if blocked
+                    end
+                end
+                local pos, onScreen = cam:WorldToScreenPoint(head.Position)
                 if onScreen then
                     local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
                     if dist < shortest then
@@ -765,11 +1001,21 @@ RunService.RenderStepped:Connect(function()
         end
     end
     if closest then
-        camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Position)
+        if Settings.silentAim then
+            -- Silent Aim: Modify camera CFrame but keep character facing? 
+            -- Better: Use mouse movement simulation to silently aim.
+            local screenPos, onScreen = cam:WorldToScreenPoint(closest.Position)
+            if onScreen then
+                UserInputService:SetMouseLocation(screenPos.X, screenPos.Y)
+            end
+        else
+            -- Visual Aim: Lock camera
+            cam.CFrame = CFrame.new(cam.CFrame.Position, closest.Position)
+        end
     end
 end)
 
--- ការកែប្រែអាវុធ
+-- ========== WEAPON MODS ==========
 function modifyWeapon(tool)
     if not tool then return end
     if Settings.noRecoil then
@@ -790,7 +1036,6 @@ function modifyWeapon(tool)
     end
 end
 
--- Giant tool (ហៅរាល់ពេលដែលប្ដូរការកំណត់)
 function resizeTools()
     local char = LocalPlayer.Character
     if not char then return end
@@ -807,9 +1052,9 @@ function resizeTools()
                         part.Massless = true
                         part.CanCollide = false
                     else
-                        local originalSize = part:GetAttribute("OriginalSize")
-                        if originalSize then
-                            part.Size = originalSize
+                        local orig = part:GetAttribute("OriginalSize")
+                        if orig then
+                            part.Size = orig
                             part.Massless = false
                             part.CanCollide = true
                         end
@@ -820,16 +1065,16 @@ function resizeTools()
     end
 end
 
--- Spam Sounds (ប្រើ SoundId ដែលមានស្រាប់)
+-- ========== SPAM SOUNDS ==========
 local spamSoundObject = nil
-local function updateSpamSounds()
+function updateSpamSounds()
     if Settings.spamSounds then
         if not spamSoundObject then
             local char = LocalPlayer.Character
             if char then
                 spamSoundObject = Instance.new("Sound")
                 spamSoundObject.Name = "SpamSound"
-                spamSoundObject.SoundId = "rbxassetid://82628393182263" -- បើមិនដំណើរការ សូមប្ដូរ ID
+                spamSoundObject.SoundId = "rbxassetid://82628393182263"
                 spamSoundObject.Volume = 1
                 spamSoundObject.Looped = true
                 spamSoundObject.Parent = char
@@ -838,29 +1083,90 @@ local function updateSpamSounds()
         end
     else
         if spamSoundObject then
-            pcall(function()
-                spamSoundObject:Stop()
-                spamSoundObject:Destroy()
-            end)
+            pcall(function() spamSoundObject:Stop(); spamSoundObject:Destroy() end)
             spamSoundObject = nil
         end
     end
 end
 
--- ព្រឹត្តិការណ៍នៅពេលតួអក្សរផ្លាស់ប្តូរ
+-- ========== INFINITE JUMP / NOCLIP / KILL AURA ==========
+UserInputService.JumpRequest:Connect(function()
+    if Settings.infiniteJump then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if Settings.noclip and LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if Settings.killAuraPlayer then
+        local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if myPos then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local target = player.Character:FindFirstChild("HumanoidRootPart")
+                    if target and (target.Position - myPos.Position).Magnitude < 20 then
+                        local hum = player.Character:FindFirstChild("Humanoid")
+                        if hum and hum.Health > 0 then hum.Health = 0 end
+                    end
+                end
+            end
+        end
+    end
+    if Settings.autoKillNPC then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Humanoid") and obj.Health > 0 then
+                local parent = obj.Parent
+                if parent and not Players:GetPlayerFromCharacter(parent) then
+                    obj.Health = 0
+                end
+            end
+        end
+    end
+end)
+
+-- ========== KEYBIND SYSTEM (Global Check) ==========
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local key = input.KeyCode.Name
+        if awaitingKeybind then return end -- Block if setting bind
+
+        if Keybinds.aimbot and key == Keybinds.aimbot then
+            Settings.aimbot = not Settings.aimbot
+            applyAllFeatures()
+        elseif Keybinds.wallhack and key == Keybinds.wallhack then
+            Settings.playerWallhack = not Settings.playerWallhack
+            applyAllFeatures()
+        elseif Keybinds.fly and key == Keybinds.fly then
+            Settings.fly = not Settings.fly
+            applyAllFeatures()
+        elseif Keybinds.triggerbot and key == Keybinds.triggerbot then
+            Settings.triggerbot = not Settings.triggerbot
+            applyAllFeatures()
+        end
+    end
+end)
+
+-- ========== EVENT HANDLERS ==========
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyMovement()
     if spamSoundObject then
-        pcall(function()
-            spamSoundObject:Stop()
-            spamSoundObject:Destroy()
-        end)
+        pcall(function() spamSoundObject:Stop(); spamSoundObject:Destroy() end)
         spamSoundObject = nil
     end
-    if Settings.spamSounds then
-        updateSpamSounds()
-    end
+    if Settings.spamSounds then updateSpamSounds() end
+    if Settings.fly then toggleFly() end
     char.ChildAdded:Connect(function(child)
         if child:IsA("Tool") then
             modifyWeapon(child)
@@ -890,7 +1196,7 @@ workspace.DescendantAdded:Connect(function(desc)
     end
 end)
 
--- អនុវត្តគ្រប់មុខងារ
+-- ========== MAIN APPLY FUNCTION ==========
 function applyAllFeatures()
     applyMovement()
     updatePlayerWallhack()
@@ -898,6 +1204,9 @@ function applyAllFeatures()
     updatePlayerESP()
     updateSpamSounds()
     resizeTools()
+    toggleFly()
+    updateESP()
+
     if LocalPlayer.Character then
         for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") then modifyWeapon(tool) end
@@ -905,14 +1214,23 @@ function applyAllFeatures()
     end
 end
 
--- អនុវត្តដំបូង
+-- ========== INIT ==========
 applyAllFeatures()
 
--- ការជូនដំណឹង
 pcall(function()
     StarterGui:SetCore("SendNotification", {
-        Title = "🪷 Copybara VIP",
-        Text = "Loaded — Lotus mode active. Tap 🪷 to toggle, drag to move.",
-        Duration = 3
+        Title = "🪷 Copybara VIP (Full)",
+        Text = "Loaded all features! Tap 🪷 to toggle. Use Keybinds!",
+        Duration = 4
     })
 end)
+
+-- Auto-refresh ESP every 0.5s to keep drawings clean
+while true do
+    task.wait(0.5)
+    if Settings.boxESP or Settings.tracers or Settings.nameESP or Settings.healthBar or Settings.fovCircle then
+        pcall(updateESP)
+    else
+        pcall(ClearESP)
+    end
+end
