@@ -426,4 +426,223 @@ end)
 
 function applyMovement()
     local char = LocalPlayer.Character
-    if char and char:
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = Settings.walkSpeed
+        char.Humanoid.JumpPower = Settings.jumpPower
+    end
+end
+
+function updatePlayerWallhack()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            if Settings.playerWallhack then
+                local hl = player.Character:FindFirstChild("PlayerWH")
+                if not hl then
+                    hl = Instance.new("Highlight")
+                    hl.Name = "PlayerWH"
+                    hl.Parent = player.Character
+                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                end
+                hl.FillColor = Settings.wallhackColor
+                hl.FillTransparency = 0.3
+                hl.OutlineColor = Color3.fromRGB(255,255,255)
+                hl.OutlineTransparency = 0.2
+                hl.Enabled = true
+            else
+                local hl = player.Character:FindFirstChild("PlayerWH")
+                if hl then hl:Destroy() end
+            end
+        end
+    end
+end
+
+function updateNPCWallhack()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Humanoid") then
+            local parent = obj.Parent
+            if parent and not Players:GetPlayerFromCharacter(parent) then
+                if Settings.npcWallhack then
+                    local hl = parent:FindFirstChild("NPCWH")
+                    if not hl then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "NPCWH"
+                        hl.Parent = parent
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    end
+                    hl.FillColor = Color3.fromRGB(255,255,150)
+                    hl.FillTransparency = 0.3
+                    hl.OutlineColor = Color3.fromRGB(255,255,255)
+                    hl.OutlineTransparency = 0.2
+                    hl.Enabled = true
+                else
+                    local hl = parent:FindFirstChild("NPCWH")
+                    if hl then hl:Destroy() end
+                end
+            end
+        end
+    end
+end
+
+function updatePlayerESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            for _, part in ipairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = Settings.playerESP and 0.5 or 0
+                end
+            end
+        end
+    end
+end
+
+-- Infinite Jump
+UserInputService.JumpRequest:Connect(function()
+    if Settings.infiniteJump then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- Noclip
+RunService.Stepped:Connect(function()
+    if Settings.noclip and LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+-- Combat loops
+RunService.Heartbeat:Connect(function()
+    if Settings.killAuraPlayer then
+        local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if myPos then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local target = player.Character:FindFirstChild("HumanoidRootPart")
+                    if target and (target.Position - myPos.Position).Magnitude < 20 then
+                        local hum = player.Character:FindFirstChild("Humanoid")
+                        if hum then hum.Health = 0 end
+                    end
+                end
+            end
+        end
+    end
+    if Settings.autoKillNPC then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Humanoid") and obj.Health > 0 then
+                local parent = obj.Parent
+                if parent and not Players:GetPlayerFromCharacter(parent) then
+                    obj.Health = 0
+                end
+            end
+        end
+    end
+end)
+
+-- Aimbot
+RunService.RenderStepped:Connect(function()
+    if not Settings.aimbot then return end
+    local camera = workspace.CurrentCamera
+    local mouse = UserInputService:GetMouseLocation()
+    local closest, shortest = nil, Settings.aimbotFOV
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local pos, onScreen = camera:WorldToScreenPoint(head.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                    if dist < shortest then
+                        shortest = dist
+                        closest = head
+                    end
+                end
+            end
+        end
+    end
+    if closest then
+        camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Position)
+    end
+end)
+
+-- Weapon modifiers
+function modifyWeapon(tool)
+    if not tool then return end
+    if Settings.noRecoil then
+        for _, prop in pairs({"Recoil", "RecoilAmount", "CameraRecoil"}) do
+            local p = tool:FindFirstChild(prop); if p and p.ClassName ~= "RemoteEvent" then p.Value = 0 end
+        end
+    end
+    if Settings.noSpread then
+        for _, prop in pairs({"Spread", "MaxSpread", "MinSpread"}) do
+            local p = tool:FindFirstChild(prop); if p and p.ClassName ~= "RemoteEvent" then p.Value = 0 end
+        end
+    end
+end
+
+-- Giant tool resizing
+function resizeTools()
+    local char = LocalPlayer.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                for _, part in ipairs(tool:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        if Settings.giantTool then
+                            if not part:GetAttribute("OriginalSize") then
+                                part:SetAttribute("OriginalSize", part.Size)
+                            end
+                            local orig = part:GetAttribute("OriginalSize") or part.Size
+                            part.Size = orig * 8
+                            part.Massless = true
+                            part.CanCollide = false
+                        else
+                            local originalSize = part:GetAttribute("OriginalSize")
+                            if originalSize then
+                                part.Size = originalSize
+                                part.Massless = false
+                                part.CanCollide = true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Character and player events
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5); applyMovement()
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then modifyWeapon(child); task.wait(0.08); resizeTools() end
+    end)
+    for _, tool in pairs(char:GetChildren()) do if tool:IsA("Tool") then modifyWeapon(tool) end end
+    task.wait(0.08); resizeTools()
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function() task.wait(0.5); updatePlayerWallhack(); updatePlayerESP() end)
+end)
+workspace.DescendantAdded:Connect(function(desc) if desc:IsA("Humanoid") then task.wait(0.18); updateNPCWallhack() end end)
+
+-- Apply all features
+function applyAllFeatures()
+    applyMovement(); updatePlayerWallhack(); updateNPCWallhack(); updatePlayerESP(); resizeTools()
+    if LocalPlayer.Character then
+        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do if tool:IsA("Tool") then modifyWeapon(tool) end end
+    end
+end
+
+applyAllFeatures()
+
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "🪷 Copybara VIP",
+        Text = "Loaded — Lotus mode active. Tap 🪷 to toggle.",
+        Duration = 3
+    })
+end)
