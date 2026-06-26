@@ -1,11 +1,13 @@
--- Copybara Hub VIP - Lotus Edition (Ultra Compact Mobile)
--- Features: Aimbot, Wallhack, ESP, Movement, Combat, Follow Player, Giant Weapon (Lotus theme)
+-- Copybara Hub VIP - Lotus Edition (Optimized & Fixed)
+-- ចុច 🪷 ដើម្បីបង្ហាញ/លាក់ Menu
+-- មុខងារ៖ Aimbot, Wallhack, ESP, Movement, Combat, Follow Player, Giant Weapon
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
 -- ========== SETTINGS ==========
@@ -19,24 +21,24 @@ local Settings = {
 local followTarget = nil
 local followConnection = nil
 
--- Forward declarations
-local applyAllFeatures, updatePlayerWallhack, updateNPCWallhack, updatePlayerESP, modifyWeapon, applyMovement, resizeTools
-
 -- ========== CREATE GUI ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CopybaraHubVIP_Lotus"
 screenGui.ResetOnSpawn = false
-pcall(function() screenGui.Parent = game:GetService("CoreGui") end)
-if not screenGui.Parent then screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+pcall(function() screenGui.Parent = CoreGui end)
+if not screenGui.Parent then
+    pcall(function() screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end)
+end
+if not screenGui.Parent then return warn("Failed to create GUI") end
 
--- Theme colors (lotus)
+-- Theme colors
 local BG = Color3.fromRGB(18,16,24)
 local Panel = Color3.fromRGB(28,24,36)
 local Accent = Color3.fromRGB(165,95,200)
 local Soft = Color3.fromRGB(220,150,200)
 local Button = Color3.fromRGB(90,60,140)
 
--- Floating Toggle Button (Lotus icon)
+-- Floating Toggle Button
 local floatingToggle = Instance.new("TextButton")
 floatingToggle.Size = UDim2.new(0, 46, 0, 46)
 floatingToggle.Position = UDim2.new(0.06, 0, 0.24, 0)
@@ -76,7 +78,6 @@ titleLabel.TextColor3 = Soft; titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold; titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left; titleLabel.Parent = titleBar
 
--- Close button
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0,18,0,18); closeBtn.Position = UDim2.new(1,-26,0.5,-9)
 closeBtn.Text = "✕"; closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
@@ -99,7 +100,7 @@ listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,listLayout.AbsoluteContentSize.Y+8)
 end)
 
--- ========== UI BUILDERS ==========
+-- ========== UI HELPERS ==========
 local function CreateSection(parent, name)
     local section = Instance.new("TextLabel")
     section.Text = "── "..name.." ──"
@@ -378,7 +379,7 @@ CreateSection(scrollFrame, "Combat")
 CreateToggle(scrollFrame, "Kill Aura (Players)", "killAuraPlayer")
 CreateToggle(scrollFrame, "Auto Kill NPCs", "autoKillNPC")
 
--- ========== FOLLOW SYSTEM ==========
+-- FOLLOW SYSTEM
 CreateSection(scrollFrame, "Follow System")
 local function updatePlayerList()
     local out = {}
@@ -401,14 +402,14 @@ local followDropdown = CreateDropdown(scrollFrame, "Select Player to Follow", up
         end
     end)
     pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Copybara", Text = "Following ".. selected, Duration = 2})
+        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "Following ".. selected, Duration = 2})
     end)
 end)
 CreateButton(scrollFrame, "Stop Following", function()
     if followConnection then followConnection:Disconnect(); followConnection = nil end
     followTarget = nil
     pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Copybara", Text = "Stopped following", Duration = 2})
+        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "Stopped following", Duration = 2})
     end)
 end)
 
@@ -418,12 +419,11 @@ CreateButton(scrollFrame, "💾 Save & Apply", function()
     applyAllFeatures()
     updateJSON()
     pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Copybara", Text = "Saved & Applied", Duration = 2})
+        CoreGui:SetCore("SendNotification", {Title = "Copybara", Text = "Saved & Applied", Duration = 2})
     end)
 end)
 
--- ========== FEATURE IMPLEMENTATIONS ==========
-
+-- ========== FEATURE FUNCTIONS ==========
 function applyMovement()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
@@ -505,7 +505,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Noclip
+-- Noclip (optimized)
 RunService.Stepped:Connect(function()
     if Settings.noclip and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -514,8 +514,9 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Combat loops
+-- Combat loops (using Heartbeat for efficiency)
 RunService.Heartbeat:Connect(function()
+    -- Kill Aura Players
     if Settings.killAuraPlayer then
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if myPos then
@@ -524,12 +525,15 @@ RunService.Heartbeat:Connect(function()
                     local target = player.Character:FindFirstChild("HumanoidRootPart")
                     if target and (target.Position - myPos.Position).Magnitude < 20 then
                         local hum = player.Character:FindFirstChild("Humanoid")
-                        if hum then hum.Health = 0 end
+                        if hum and hum.Health > 0 then
+                            hum.Health = 0
+                        end
                     end
                 end
             end
         end
     end
+    -- Auto Kill NPCs
     if Settings.autoKillNPC then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Humanoid") and obj.Health > 0 then
@@ -542,10 +546,11 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Aimbot
+-- Aimbot (optimized)
 RunService.RenderStepped:Connect(function()
     if not Settings.aimbot then return end
     local camera = workspace.CurrentCamera
+    if not camera then return end
     local mouse = UserInputService:GetMouseLocation()
     local closest, shortest = nil, Settings.aimbotFOV
     for _, player in ipairs(Players:GetPlayers()) do
@@ -573,39 +578,44 @@ function modifyWeapon(tool)
     if not tool then return end
     if Settings.noRecoil then
         for _, prop in pairs({"Recoil", "RecoilAmount", "CameraRecoil"}) do
-            local p = tool:FindFirstChild(prop); if p and p.ClassName ~= "RemoteEvent" then p.Value = 0 end
+            local p = tool:FindFirstChild(prop)
+            if p and p.ClassName ~= "RemoteEvent" then
+                p.Value = 0
+            end
         end
     end
     if Settings.noSpread then
         for _, prop in pairs({"Spread", "MaxSpread", "MinSpread"}) do
-            local p = tool:FindFirstChild(prop); if p and p.ClassName ~= "RemoteEvent" then p.Value = 0 end
+            local p = tool:FindFirstChild(prop)
+            if p and p.ClassName ~= "RemoteEvent" then
+                p.Value = 0
+            end
         end
     end
 end
 
--- Giant tool resizing
+-- Giant tool resizing (fixed to apply on equip and when toggled)
 function resizeTools()
     local char = LocalPlayer.Character
-    if char then
-        for _, tool in ipairs(char:GetChildren()) do
-            if tool:IsA("Tool") then
-                for _, part in ipairs(tool:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        if Settings.giantTool then
-                            if not part:GetAttribute("OriginalSize") then
-                                part:SetAttribute("OriginalSize", part.Size)
-                            end
-                            local orig = part:GetAttribute("OriginalSize") or part.Size
-                            part.Size = orig * 8
-                            part.Massless = true
-                            part.CanCollide = false
-                        else
-                            local originalSize = part:GetAttribute("OriginalSize")
-                            if originalSize then
-                                part.Size = originalSize
-                                part.Massless = false
-                                part.CanCollide = true
-                            end
+    if not char then return end
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            for _, part in ipairs(tool:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    if Settings.giantTool then
+                        if not part:GetAttribute("OriginalSize") then
+                            part:SetAttribute("OriginalSize", part.Size)
+                        end
+                        local orig = part:GetAttribute("OriginalSize") or part.Size
+                        part.Size = orig * 8
+                        part.Massless = true
+                        part.CanCollide = false
+                    else
+                        local originalSize = part:GetAttribute("OriginalSize")
+                        if originalSize then
+                            part.Size = originalSize
+                            part.Massless = false
+                            part.CanCollide = true
                         end
                     end
                 end
@@ -616,31 +626,57 @@ end
 
 -- Character and player events
 LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(0.5); applyMovement()
+    task.wait(0.5)
+    applyMovement()
     char.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") then modifyWeapon(child); task.wait(0.08); resizeTools() end
+        if child:IsA("Tool") then
+            modifyWeapon(child)
+            task.wait(0.08)
+            resizeTools()
+        end
     end)
-    for _, tool in pairs(char:GetChildren()) do if tool:IsA("Tool") then modifyWeapon(tool) end end
-    task.wait(0.08); resizeTools()
+    for _, tool in pairs(char:GetChildren()) do
+        if tool:IsA("Tool") then modifyWeapon(tool) end
+    end
+    task.wait(0.08)
+    resizeTools()
 end)
 
 Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function() task.wait(0.5); updatePlayerWallhack(); updatePlayerESP() end)
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        updatePlayerWallhack()
+        updatePlayerESP()
+    end)
 end)
-workspace.DescendantAdded:Connect(function(desc) if desc:IsA("Humanoid") then task.wait(0.18); updateNPCWallhack() end end)
 
--- Apply all features
+workspace.DescendantAdded:Connect(function(desc)
+    if desc:IsA("Humanoid") then
+        task.wait(0.18)
+        updateNPCWallhack()
+    end
+end)
+
+-- Apply all features (master function)
 function applyAllFeatures()
-    applyMovement(); updatePlayerWallhack(); updateNPCWallhack(); updatePlayerESP(); resizeTools()
+    applyMovement()
+    updatePlayerWallhack()
+    updateNPCWallhack()
+    updatePlayerESP()
+    resizeTools()
     if LocalPlayer.Character then
-        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do if tool:IsA("Tool") then modifyWeapon(tool) end end
+        for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
+            if tool:IsA("Tool") then modifyWeapon(tool) end
+        end
     end
 end
 
+-- Initial apply
 applyAllFeatures()
 
+-- Notification
 pcall(function()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
+    CoreGui:SetCore("SendNotification", {
         Title = "🪷 Copybara VIP",
         Text = "Loaded — Lotus mode active. Tap 🪷 to toggle.",
         Duration = 3
