@@ -54,7 +54,7 @@ ToggleCorner.Parent = ToggleUIBtn
 local NoclipBtn = Instance.new("TextButton")
 NoclipBtn.Size = UDim2.new(0, 200, 0, 40)
 NoclipBtn.Position = UDim2.new(0, 10, 0, 15)
-NoclipBtn.Text = "ការពារបុកបើង: បិទ"
+NoclipBtn.Text = "ការពារបុកប៉ើង: បិទ"
 NoclipBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
 NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoclipBtn.Font = Enum.Font.GothamBold
@@ -155,7 +155,7 @@ CloseBtn.Activated:Connect(function()
     OpenBtn.Visible = true
 end)
 
--- ៣. ចុច OpenBtn ដើម្បីបង្ហាញ Frame ឡើងវិញ
+-- ៣. ចុច OpenBtn ដើម្បីបង្ហាញ Frame ឡើងវិញវ
 OpenBtn.Activated:Connect(function()
     Frame.Visible = true
     ToggleUIBtn.Visible = true
@@ -167,7 +167,7 @@ local noclipEnabled = false
 NoclipBtn.Activated:Connect(function()
     noclipEnabled = not noclipEnabled
     if noclipEnabled then
-        NoclipBtn.Text = "😩ការពារបុកបើង: បើក"
+        NoclipBtn.Text = "ការពារបុកប៉ើង:បើក"
         NoclipBtn.BackgroundColor3 = Color3.fromRGB(241, 196, 15)
         NoclipBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
