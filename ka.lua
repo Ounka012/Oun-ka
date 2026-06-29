@@ -171,7 +171,7 @@ NoclipBtn.Activated:Connect(function()
         NoclipBtn.BackgroundColor3 = Color3.fromRGB(241, 196, 15)
         NoclipBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        NoclipBtn.Text = "🔥 VIP Noclip: បិទ"
+        NoclipBtn.Text = "😛ការពារបុកប៉ើង: បិទ"
         NoclipBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
         NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
